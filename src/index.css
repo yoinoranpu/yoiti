@@ -1,0 +1,574 @@
+:root {
+  --color-bg: #0e0b12;
+  --color-panel: #1a1520;
+  --color-panel-alt: #201a28;
+  --color-border: #3a2f40;
+  --color-text: #e8e0ea;
+  --color-text-dim: #9c8fa5;
+  --color-accent: #c9a24a;
+  --color-danger: #a84f4f;
+  color-scheme: dark;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  background: var(--color-bg);
+  color: var(--color-text);
+  font-family: "Yu Mincho", "Hiragino Mincho ProN", serif;
+}
+
+button {
+  font-family: inherit;
+}
+
+/* --- generic screens --- */
+
+.screen {
+  height: 100%;
+  display: flex;
+}
+
+.screen-center {
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem;
+  text-align: center;
+  padding: 2rem;
+}
+
+.title {
+  font-size: 2.5rem;
+  letter-spacing: 0.3em;
+  margin: 0;
+  position: relative;
+}
+
+.screen-title {
+  position: relative;
+  overflow: hidden;
+}
+
+.screen-title-backdrop {
+  position: absolute;
+  inset: 0;
+  background-color: #0e0b12;
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  image-rendering: pixelated;
+  filter: brightness(0.6);
+}
+
+.screen-title > *:not(.screen-title-backdrop) {
+  position: relative;
+}
+
+.subtitle {
+  color: var(--color-text-dim);
+  margin: 0;
+}
+
+.btn {
+  border: 1px solid var(--color-border);
+  background: var(--color-panel);
+  color: var(--color-text);
+  padding: 0.5rem 1.2rem;
+  cursor: pointer;
+  font-size: 0.95rem;
+}
+
+.btn:hover:not(:disabled) {
+  border-color: var(--color-accent);
+  color: var(--color-accent);
+}
+
+.btn:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+.btn-primary {
+  margin-top: 1rem;
+  border-color: var(--color-accent);
+  color: var(--color-accent);
+}
+
+.screen-gameover .title {
+  color: var(--color-danger);
+}
+
+/* --- night screen layout --- */
+
+.night {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+.topbar {
+  display: flex;
+  gap: 2rem;
+  padding: 0.6rem 1rem;
+  border-bottom: 1px solid var(--color-border);
+  font-size: 0.85rem;
+  color: var(--color-text-dim);
+}
+
+.night-body {
+  position: relative;
+  flex: 1;
+  overflow: hidden;
+}
+
+.panel {
+  padding: 0;
+}
+
+.panel h2 {
+  font-size: 0.9rem;
+  color: var(--color-accent);
+  letter-spacing: 0.1em;
+  margin: 0 0 0.6rem;
+}
+
+.entry-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.7rem;
+}
+
+.entry-title {
+  margin: 0;
+  font-weight: bold;
+  font-size: 0.85rem;
+}
+
+.entry-text {
+  margin: 0.15rem 0 0;
+  font-size: 0.8rem;
+  color: var(--color-text-dim);
+  white-space: pre-line;
+}
+
+.entry-label {
+  display: block;
+  font-size: 0.8rem;
+  color: var(--color-accent);
+}
+
+.empty {
+  font-size: 0.8rem;
+  color: var(--color-text-dim);
+}
+
+/* --- 資料/まとめた情報/見た情報: 右上のアイコン列から開閉する
+   「壁に貼った紙」のようなドロワー。常時表示のカラムをやめ、
+   画面の大半をシーンに使えるようにする。 --- */
+
+.info-rail {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  z-index: 10;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.info-rail-btn {
+  width: 42px;
+  height: 42px;
+  padding: 7px;
+  border-radius: 4px;
+  border: 1px solid var(--color-border);
+  background: rgba(20, 16, 24, 0.85);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.info-rail-btn img {
+  width: 100%;
+  height: 100%;
+  image-rendering: pixelated;
+}
+
+.info-rail-fallback {
+  font-size: 0.9rem;
+  color: var(--color-text-dim);
+}
+
+.info-rail-btn:hover,
+.info-rail-btn-active {
+  border-color: var(--color-accent);
+  background: rgba(20, 16, 24, 0.98);
+}
+
+.info-drawer {
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  width: min(300px, 80%);
+  z-index: 9;
+  background: linear-gradient(180deg, #cfc3a0, #b6aa84);
+  border-left: 3px solid #6b5a3a;
+  box-shadow: -8px 0 20px rgba(0, 0, 0, 0.55);
+  padding: 2.4rem 1rem 1rem;
+  overflow-y: auto;
+  color: #2c2410;
+}
+
+.info-drawer-pin {
+  position: absolute;
+  top: 10px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 13px;
+  height: 13px;
+  border-radius: 50%;
+  background: var(--color-danger);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.6);
+}
+
+.info-drawer h2 {
+  color: #5c4a26;
+}
+
+.info-drawer .entry-title {
+  color: #2c2410;
+}
+
+.info-drawer .entry-text,
+.info-drawer .empty {
+  color: #4a3f28;
+}
+
+.info-drawer .entry-label {
+  color: #8a5a1f;
+}
+
+/* --- scene --- */
+
+.scene {
+  position: relative;
+  height: 100%;
+  min-height: 340px;
+  overflow: hidden;
+}
+
+.scene-backdrop {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  background-color: #0e0b12;
+  background-image: radial-gradient(circle at 50% 30%, #241c2c, #0e0b12 75%);
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  image-rendering: pixelated;
+  transition: filter 0.3s ease;
+}
+
+/* キャラはカウンターの奥に立つ。下半分をカウンターに隠すことで
+   「その場にいる」実在感を出す(重なりの数値はカウンターの高さと連動)。 */
+.scene-actor {
+  position: absolute;
+  left: 50%;
+  bottom: 65px;
+  transform: translateX(-50%);
+  z-index: 1;
+  transition: opacity 0.3s ease, transform 0.3s ease;
+}
+
+.scene-figure {
+  position: relative;
+  width: 96px;
+  height: 96px;
+  border-radius: 50%;
+  background: var(--color-panel-alt);
+  border: 1px solid var(--color-border);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 2rem;
+  color: var(--color-text-dim);
+}
+
+.scene-figure-img {
+  display: block;
+  width: 260px;
+  height: auto;
+  image-rendering: pixelated;
+}
+
+.scene-dialogue-anchor {
+  position: absolute;
+  left: 50%;
+  bottom: 210px;
+  transform: translateX(-50%);
+  z-index: 3;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: max-content;
+  max-width: 80%;
+}
+
+/* イラスト未実装の間はプレースホルダー円の上に置かれる。イラスト差し替え後も
+   x/y(%)の位置指定だけで自然に追従する。 */
+.hotspot {
+  position: absolute;
+  width: 18px;
+  height: 18px;
+  transform: translate(-50%, -50%);
+  border-radius: 50%;
+  border: 1px solid var(--color-accent);
+  background: rgba(201, 162, 74, 0.25);
+  cursor: pointer;
+  padding: 0;
+}
+
+.hotspot:hover {
+  background: rgba(201, 162, 74, 0.5);
+}
+
+.hotspot-viewed {
+  border-color: var(--color-text-dim);
+  background: transparent;
+}
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+}
+
+.scene-name {
+  margin: 0;
+  font-size: 0.9rem;
+  color: var(--color-text-dim);
+  background: rgba(14, 11, 18, 0.55);
+  padding: 0.1rem 0.6rem;
+  border-radius: 3px;
+}
+
+.speech-bubble {
+  position: relative;
+  max-width: 260px;
+  margin: 0.5rem 0 0;
+  padding: 0.5rem 0.8rem;
+  background: var(--color-panel);
+  border: 1px solid var(--color-border);
+  border-radius: 10px;
+}
+
+.speech-bubble::before {
+  content: "";
+  position: absolute;
+  top: -6px;
+  left: 50%;
+  transform: translateX(-50%) rotate(45deg);
+  width: 10px;
+  height: 10px;
+  background: var(--color-panel);
+  border-left: 1px solid var(--color-border);
+  border-top: 1px solid var(--color-border);
+}
+
+.speech-bubble p {
+  margin: 0;
+  font-size: 0.8rem;
+  white-space: pre-line;
+}
+
+.counter {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 100px;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 1rem;
+  background-color: #241a12;
+  background-image: linear-gradient(180deg, #3a2a1e, #241a12);
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  image-rendering: pixelated;
+  border-top: 2px solid #4a3626;
+}
+
+.scene-focus .scene-backdrop {
+  filter: brightness(0.35);
+}
+
+.scene-focus .scene-actor,
+.scene-focus .scene-dialogue-anchor {
+  opacity: 0.35;
+  transform: translateX(-50%) scale(0.9);
+}
+
+/* カウンターの上に乗る商品。宙に浮くカードではなく、カウンター面に
+   置かれているように見せる。 */
+.counter-item {
+  position: relative;
+  z-index: 3;
+  display: flex;
+  align-items: center;
+  gap: 0.7rem;
+  background: rgba(14, 11, 18, 0.6);
+  border: 1px solid var(--color-accent);
+  border-radius: 4px;
+  padding: 0.5rem 0.8rem;
+  max-width: 90%;
+}
+
+.counter-item-img {
+  width: 48px;
+  height: 48px;
+  object-fit: contain;
+  image-rendering: pixelated;
+  flex-shrink: 0;
+}
+
+.counter-item-placeholder {
+  width: 48px;
+  height: 48px;
+  border-radius: 4px;
+  background: var(--color-panel-alt);
+  border: 1px solid var(--color-border);
+  flex-shrink: 0;
+}
+
+.counter-item-info {
+  text-align: left;
+  min-width: 0;
+}
+
+.counter-item-name {
+  margin: 0;
+  font-weight: bold;
+  color: var(--color-accent);
+  font-size: 0.85rem;
+}
+
+.counter-item-desc {
+  margin: 0.15rem 0;
+  font-size: 0.7rem;
+  color: var(--color-text-dim);
+}
+
+.counter-item-price {
+  margin: 0;
+  font-size: 0.75rem;
+}
+
+/* --- dialogue --- */
+
+.dialogue {
+  border-top: 1px solid var(--color-border);
+  padding: 0.9rem 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.8rem;
+  max-height: 45%;
+  overflow-y: auto;
+}
+
+.dialogue-log {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  font-size: 0.85rem;
+}
+
+.line-narration {
+  color: var(--color-text-dim);
+  white-space: pre-line;
+  margin: 0;
+}
+
+.line-speech {
+  margin: 0;
+  white-space: pre-line;
+}
+
+.speaker {
+  color: var(--color-accent);
+  font-weight: bold;
+}
+
+.actions {
+  display: flex;
+  gap: 1.2rem;
+  flex-wrap: wrap;
+}
+
+.action-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  min-width: 160px;
+}
+
+.action-group-label {
+  margin: 0;
+  font-size: 0.75rem;
+  color: var(--color-text-dim);
+}
+
+.btn-topic {
+  text-align: left;
+  font-size: 0.82rem;
+}
+
+.btn-trade {
+  text-align: left;
+  font-size: 0.82rem;
+}
+
+.btn-report {
+  border-color: var(--color-danger);
+}
+
+.btn-report:hover:not(:disabled) {
+  color: var(--color-danger);
+  border-color: var(--color-danger);
+}
+
+/* --- result panel ---
+   判断の結果は全画面ポップアップにせず、キャラと吹き出しを画面に残したまま
+   actions の代わりにここへ差し込む(反応が見えないまま話が進むのを防ぐため)。 */
+
+.result-panel {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.gold-delta {
+  font-size: 1.1rem;
+  color: var(--color-accent);
+  margin: 0;
+}
