@@ -36,6 +36,12 @@
   在庫スナップショット」(`appraisalQueue`)に対して行う。売れた品だけ`invId`で
   在庫から除去し、やめた品・買い手に逃げられた品は残って翌日以降また売れる。
   これで「客数が実質倍」問題も、査定を毎日やりきる必要がなくなったことで解消した。
+- **GitHub Pagesで公開**: https://yoinoranpu.github.io/yoiti/ 。GitHub Actions
+  (`.github/workflows/deploy.yml`)でmasterへのpush時に自動ビルド・デプロイされる。
+  `vite.config.js`でビルド時のみ`base: "/yoiti/"`にし、`src/components/panels.jsx`の
+  `assetUrl()`ヘルパーで`public/assets/`への参照をすべて`import.meta.env.BASE_URL`
+  基準に統一した(サブパス配信でも画像が正しく解決されるように)。リポジトリ:
+  https://github.com/yoinoranpu/yoiti (public)。
 - **UIレイアウト大幅改修**: シーンを背景→キャラ(下半身がカウンターの裏)→
   カウンター→アイテム(カウンター上に表示)の重なりに再構成し、キャラが宙に
   浮いて見える問題を解消(`panels.jsx`の`ScenePanel`/`ItemFigure`、
