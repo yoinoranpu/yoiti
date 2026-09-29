@@ -26,3 +26,4 @@ raw_illustrations/
 *.njsproj
 *.sln
 *.sw?
+__pycache__/
