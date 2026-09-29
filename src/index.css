@@ -118,11 +118,41 @@ button {
 
 .topbar {
   display: flex;
-  gap: 2rem;
+  gap: 1.6rem;
   padding: 0.6rem 1rem;
   border-bottom: 1px solid var(--color-border);
   font-size: 0.85rem;
   color: var(--color-text-dim);
+}
+
+.topbar-stat {
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+}
+
+.topbar-icon {
+  width: 18px;
+  height: 18px;
+  image-rendering: pixelated;
+}
+
+.btn-icon {
+  width: 16px;
+  height: 16px;
+  vertical-align: -3px;
+  margin-right: 0.4rem;
+  image-rendering: pixelated;
+}
+
+.action-group-label {
+  display: flex;
+  align-items: center;
+}
+
+.action-group-label .btn-icon {
+  width: 14px;
+  height: 14px;
 }
 
 .night-body {
@@ -136,6 +166,8 @@ button {
 }
 
 .panel h2 {
+  display: flex;
+  align-items: center;
   font-size: 0.9rem;
   color: var(--color-accent);
   letter-spacing: 0.1em;

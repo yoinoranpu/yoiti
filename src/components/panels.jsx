@@ -5,10 +5,31 @@ import { useGameStore } from "../store/gameStore"
 // 正しく解決されるように、実行時に BASE_URL を付ける。
 export const assetUrl = (path) => `${import.meta.env.BASE_URL}${path}`.replace(/\/{2,}/g, "/")
 
+// ボタンやラベルの先頭に小さいアイコンを添える共通部品。読み込み失敗時はアイコン
+// なしで文字だけになる(壊れた画像アイコンは出さない)。
+export function IconLabel({ icon, children }) {
+  const [failed, setFailed] = useState(false)
+  return (
+    <>
+      {icon && !failed && (
+        <img
+          className="btn-icon"
+          src={assetUrl(`assets/icons/${icon}.png`)}
+          alt=""
+          onError={() => setFailed(true)}
+        />
+      )}
+      <span>{children}</span>
+    </>
+  )
+}
+
 export function ReferencePanel({ reference }) {
   return (
     <div className="panel panel-reference">
-      <h2>資料</h2>
+      <h2>
+        <IconLabel icon="icon-reference">資料</IconLabel>
+      </h2>
       <ul className="entry-list">
         {reference.map((r) => (
           <li key={r.id}>
@@ -25,7 +46,9 @@ export function NotesPanel() {
   const notes = useGameStore((s) => s.notes)
   return (
     <div className="panel panel-notes">
-      <h2>まとめた情報</h2>
+      <h2>
+        <IconLabel icon="icon-notes">まとめた情報</IconLabel>
+      </h2>
       {notes.length === 0 ? (
         <p className="empty">まだ何も聞いていない。</p>
       ) : (
@@ -43,7 +66,9 @@ export function InspectionPanel() {
   const inspection = useGameStore((s) => s.inspection)
   return (
     <div className="panel panel-inspection">
-      <h2>見た情報</h2>
+      <h2>
+        <IconLabel icon="icon-inspection">見た情報</IconLabel>
+      </h2>
       <ul className="entry-list">
         {inspection.map((i) => (
           <li key={i.id}>
@@ -263,7 +288,9 @@ export function TalkGroup({ topics }) {
   const talk = useGameStore((s) => s.talk)
   return (
     <div className="action-group">
-      <p className="action-group-label">話す</p>
+      <p className="action-group-label">
+        <IconLabel icon="icon-talk">話す</IconLabel>
+      </p>
       {topics.map((t) => (
         <button
           key={t.id}

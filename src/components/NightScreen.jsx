@@ -1,5 +1,5 @@
 import { useGameStore } from "../store/gameStore"
-import { InfoOverlay, ScenePanel, DialogueLog, TalkGroup, ResultPanel } from "./panels"
+import { InfoOverlay, ScenePanel, DialogueLog, TalkGroup, ResultPanel, IconLabel, assetUrl } from "./panels"
 
 function TopBar() {
   const day = useGameStore((s) => s.day)
@@ -8,13 +8,26 @@ function TopBar() {
   const customerIndex = useGameStore((s) => s.customerIndex)
   const inventoryCount = useGameStore((s) => s.inventory.length)
   const total = useGameStore((s) => s.currentDayConfig().customers.length)
+  const moonPhase = Math.min(day, 7)
 
   return (
     <div className="topbar">
-      <span>{day}日目</span>
-      <span>所持金 {gold}G</span>
-      <span>上納金 {quota}G</span>
-      <span>在庫 {inventoryCount}点</span>
+      <span className="topbar-stat">
+        <img className="topbar-icon" src={assetUrl(`assets/icons/icon-moon-phase-${moonPhase}.png`)} alt="" />
+        {day}日目
+      </span>
+      <span className="topbar-stat">
+        <img className="topbar-icon" src={assetUrl("assets/icons/icon-gold.png")} alt="" />
+        {gold}G
+      </span>
+      <span className="topbar-stat">
+        <img className="topbar-icon" src={assetUrl("assets/icons/icon-quota.png")} alt="" />
+        {quota}G
+      </span>
+      <span className="topbar-stat">
+        <img className="topbar-icon" src={assetUrl("assets/icons/icon-inventory.png")} alt="" />
+        {inventoryCount}点
+      </span>
       <span>
         客 {customerIndex + 1} / {total}
       </span>
@@ -47,31 +60,35 @@ function DialoguePanel({ customer }) {
           <TalkGroup topics={customer.topics} />
 
           <div className="action-group">
-            <p className="action-group-label">調べる</p>
+            <p className="action-group-label">
+              <IconLabel icon="icon-inspect">調べる</IconLabel>
+            </p>
             <button className="btn btn-topic" disabled={itemRevealed} onClick={inspectItem}>
-              商品を詳しく調べる
+              <IconLabel icon="icon-inspect">商品を詳しく調べる</IconLabel>
             </button>
             {hasDetector && (
               <button className="btn btn-topic" disabled={soulChecked} onClick={checkSoul}>
-                魂判別機を使う
+                <IconLabel icon="icon-soul-detector">魂判別機を使う</IconLabel>
               </button>
             )}
           </div>
 
           <div className="action-group">
-            <p className="action-group-label">判断する</p>
+            <p className="action-group-label">
+              <IconLabel icon="icon-decide">判断する</IconLabel>
+            </p>
             <button className="btn btn-trade" onClick={buyFull}>
-              言い値で買う({customer.item.askPrice}G)
+              <IconLabel icon="icon-buy">言い値で買う({customer.item.askPrice}G)</IconLabel>
             </button>
             <button className="btn btn-trade" disabled={negotiationFailed} onClick={tryLowball}>
-              値切る({customer.item.lowballPrice}G)
+              <IconLabel icon="icon-haggle">値切る({customer.item.lowballPrice}G)</IconLabel>
             </button>
             <button className="btn btn-trade" onClick={refuse}>
-              断る
+              <IconLabel icon="icon-refuse">断る</IconLabel>
             </button>
             {customer.resolution.report && (
               <button className="btn btn-trade btn-report" onClick={report}>
-                通報する
+                <IconLabel icon="icon-report">通報する</IconLabel>
               </button>
             )}
           </div>

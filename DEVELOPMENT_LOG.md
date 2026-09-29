@@ -2,6 +2,20 @@
 
 ## 進行中
 
+- **ChatGPT完成イメージ図をもとにUIへアイコンを配線**(2026-09-30)。
+  ChatGPTに現状のゲーム画面を見せて描いてもらった完成イメージ図
+  (タイトル画面/メイン画面、`memory/chatgpt_concept_mockup_prompts.md`)と
+  見比べ、取り込み済みだが未使用だったアイコン素材を実装。
+  - 上部ステータス(日数=月の満ち欠けアイコン/所持金/上納金/在庫)、
+    「話す/調べる/判断する」の各ボタン・見出し、資料/まとめた情報/見た情報の
+    見出しにアイコンを追加(`IconLabel`共通コンポーネント、
+    `src/components/panels.jsx`/`NightScreen.jsx`/`AppraisalScreen.jsx`/
+    `index.css`)。ブラウザで全アイコンが404なく表示されることを確認済み。
+  - `button-frame.png`は自動クロップして小ボタンへの適用を試したが、
+    手描き装飾が不均一で9-slice向きではないと判断し見送り(大きいパネル用に
+    転用予定)。`title-logo.png`はglow効果がグリーンバックと衝突し緑の縁が
+    残る不具合が判明(要作り直し、未使用のまま)。詳細は
+    [decisions.md](memory/decisions.md)参照。
 - **7日間ループを実装・動作確認済み**。`src/data/days.js` にDay1〜7の構成
   (客リスト/上納金/判別機の有無/強制イベント)をまとめ、`src/store/gameStore.js`
   をDay対応にリファクタした。

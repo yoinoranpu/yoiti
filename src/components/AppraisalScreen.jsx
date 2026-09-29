@@ -1,6 +1,6 @@
 import { useGameStore } from "../store/gameStore"
 import { REFERENCE } from "../data/days"
-import { InfoOverlay, ScenePanel, DialogueLog, TalkGroup, ResultPanel } from "./panels"
+import { InfoOverlay, ScenePanel, DialogueLog, TalkGroup, ResultPanel, IconLabel, assetUrl } from "./panels"
 
 function TopBar() {
   const day = useGameStore((s) => s.day)
@@ -8,12 +8,22 @@ function TopBar() {
   const quota = useGameStore((s) => s.quota)
   const appraisalIndex = useGameStore((s) => s.appraisalIndex)
   const queueCount = useGameStore((s) => s.appraisalQueue.length)
+  const moonPhase = Math.min(day, 7)
 
   return (
     <div className="topbar">
-      <span>{day}日目</span>
-      <span>所持金 {gold}G</span>
-      <span>上納金 {quota}G</span>
+      <span className="topbar-stat">
+        <img className="topbar-icon" src={assetUrl(`assets/icons/icon-moon-phase-${moonPhase}.png`)} alt="" />
+        {day}日目
+      </span>
+      <span className="topbar-stat">
+        <img className="topbar-icon" src={assetUrl("assets/icons/icon-gold.png")} alt="" />
+        {gold}G
+      </span>
+      <span className="topbar-stat">
+        <img className="topbar-icon" src={assetUrl("assets/icons/icon-quota.png")} alt="" />
+        {quota}G
+      </span>
       <span>
         査定 {appraisalIndex + 1} / {queueCount}
       </span>
@@ -39,15 +49,17 @@ function SellDialoguePanel({ item }) {
           <TalkGroup topics={item.buyer.topics} />
 
           <div className="action-group">
-            <p className="action-group-label">判断する</p>
+            <p className="action-group-label">
+              <IconLabel icon="icon-decide">判断する</IconLabel>
+            </p>
             <button className="btn btn-trade" onClick={sellAtValue}>
-              言い値で売る({item.trueValue}G)
+              <IconLabel icon="icon-buy">言い値で売る({item.trueValue}G)</IconLabel>
             </button>
             <button className="btn btn-trade" onClick={tryHaggleUp}>
-              高く売れないか粘る({item.haggleValue}G)
+              <IconLabel icon="icon-haggle">高く売れないか粘る({item.haggleValue}G)</IconLabel>
             </button>
             <button className="btn btn-trade" onClick={skipSell}>
-              やめておく
+              <IconLabel icon="icon-refuse">やめておく</IconLabel>
             </button>
           </div>
         </div>
