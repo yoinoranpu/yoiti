@@ -1,6 +1,6 @@
 import { useGameStore } from "../store/gameStore"
 import { REFERENCE } from "../data/days"
-import { InfoOverlay, ScenePanel, DialogueLog, TalkGroup, ResultPanel, IconLabel, assetUrl } from "./panels"
+import { InfoOverlay, ScenePanel, DialogueLog, TalkGroup, ResultPanel, IconLabel, InspectionDesk, assetUrl } from "./panels"
 
 function TopBar() {
   const day = useGameStore((s) => s.day)
@@ -48,10 +48,10 @@ function SellDialoguePanel({ item }) {
         <div className="actions">
           <TalkGroup topics={item.buyer.topics} />
 
-          <div className="action-group">
-            <p className="action-group-label">
-              <IconLabel icon="icon-decide">判断する</IconLabel>
-            </p>
+          <InspectionDesk item={item} />
+
+          <div className="action-group decision-plate">
+            <p className="action-group-label">十分調べた。さて、どうする？</p>
             <button className="btn btn-trade" onClick={sellAtValue}>
               <IconLabel icon="icon-buy">言い値で売る({item.trueValue}G)</IconLabel>
             </button>

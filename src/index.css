@@ -604,3 +604,128 @@ button {
   color: var(--color-accent);
   margin: 0;
 }
+
+/* --- inspection desk ---
+   商品の各部位からラベルへ線を伸ばし、1つずつ選んで開示する鑑定机。
+   ボタンから選ぶのではなく、机の上の商品を直接調べている感覚を出す。 */
+
+.inspection-desk {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  width: 100%;
+}
+
+.obs-budget {
+  margin: 0;
+  font-size: 0.75rem;
+  color: var(--color-text-dim);
+}
+
+.inspection-desk-stage {
+  position: relative;
+  width: 100%;
+  height: 190px;
+  background: radial-gradient(circle at 50% 50%, var(--color-panel-alt), var(--color-bg) 80%);
+  border: 1px solid var(--color-border);
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.obs-lines {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+
+.obs-lines line {
+  stroke: var(--color-accent);
+  stroke-width: 0.5;
+  opacity: 0.4;
+}
+
+.inspection-desk-item-img {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  width: 84px;
+  height: 84px;
+  object-fit: contain;
+  image-rendering: pixelated;
+  filter: drop-shadow(0 0 6px rgba(0, 0, 0, 0.6));
+}
+
+.inspection-desk-item-placeholder {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  width: 84px;
+  height: 84px;
+  border-radius: 4px;
+  background: var(--color-panel-alt);
+  border: 1px solid var(--color-border);
+}
+
+.obs-node {
+  position: absolute;
+  transform: translate(-50%, -50%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.1rem;
+  padding: 0.25rem 0.5rem;
+  border-radius: 3px;
+  border: 1px solid var(--color-border);
+  background: rgba(14, 11, 18, 0.85);
+  cursor: pointer;
+  max-width: 110px;
+  text-align: center;
+}
+
+.obs-node-label {
+  font-size: 0.7rem;
+  color: var(--color-accent);
+}
+
+.obs-node-value {
+  font-size: 0.68rem;
+  color: var(--color-text-dim);
+  white-space: normal;
+}
+
+.obs-node-hidden:hover:not(:disabled) {
+  border-color: var(--color-accent);
+}
+
+.obs-node-revealed {
+  border-color: var(--color-accent);
+  cursor: default;
+}
+
+.obs-node-revealed .obs-node-value {
+  color: var(--color-text);
+}
+
+.obs-node:disabled:not(.obs-node-revealed) {
+  opacity: 0.4;
+  cursor: default;
+}
+
+/* --- decision plate ---
+   「判断する」は木札/金属プレートのような、夜市の店に実在しそうな質感にする。 */
+
+.decision-plate {
+  background: linear-gradient(180deg, #3a2a1e, #241a12);
+  border: 1px solid #4a3626;
+  border-radius: 3px;
+  padding: 0.6rem 0.7rem;
+}
+
+.decision-plate .action-group-label {
+  color: var(--color-accent);
+  font-size: 0.78rem;
+  margin-bottom: 0.15rem;
+}

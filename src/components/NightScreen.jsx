@@ -1,5 +1,5 @@
 import { useGameStore } from "../store/gameStore"
-import { InfoOverlay, ScenePanel, DialogueLog, TalkGroup, ResultPanel, IconLabel, assetUrl } from "./panels"
+import { InfoOverlay, ScenePanel, DialogueLog, TalkGroup, ResultPanel, IconLabel, InspectionDesk, assetUrl } from "./panels"
 
 function TopBar() {
   const day = useGameStore((s) => s.day)
@@ -64,7 +64,7 @@ function DialoguePanel({ customer }) {
               <IconLabel icon="icon-inspect">調べる</IconLabel>
             </p>
             <button className="btn btn-topic" disabled={itemRevealed} onClick={inspectItem}>
-              <IconLabel icon="icon-inspect">商品を詳しく調べる</IconLabel>
+              <IconLabel icon="icon-inspect">商品を鑑定台に置く</IconLabel>
             </button>
             {hasDetector && (
               <button className="btn btn-topic" disabled={soulChecked} onClick={checkSoul}>
@@ -73,10 +73,10 @@ function DialoguePanel({ customer }) {
             )}
           </div>
 
-          <div className="action-group">
-            <p className="action-group-label">
-              <IconLabel icon="icon-decide">判断する</IconLabel>
-            </p>
+          {itemRevealed && <InspectionDesk item={customer.item} />}
+
+          <div className="action-group decision-plate">
+            <p className="action-group-label">十分調べた。さて、どうする？</p>
             <button className="btn btn-trade" onClick={buyFull}>
               <IconLabel icon="icon-buy">言い値で買う({customer.item.askPrice}G)</IconLabel>
             </button>

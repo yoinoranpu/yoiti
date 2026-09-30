@@ -8,9 +8,12 @@ const itemToInventory = (item) => ({
   invId: `inv-${inventoryUid++}`,
   name: item.name,
   image: item.image,
+  description: item.description,
   trueValue: item.trueValue,
   haggleValue: item.haggleValue,
   hasSoul: item.hasSoul,
+  hiddenObservations: item.hiddenObservations,
+  observationBudget: item.observationBudget,
   buyer: item.buyer,
 })
 
@@ -26,6 +29,7 @@ const encounterStateFor = (actor, soulAutoReveal) => {
     dialogueLog: [{ speaker: "narration", text: actor.arrival }],
     usedTopics: [],
     viewedClues: [],
+    revealedObservations: [],
   }
 }
 
@@ -78,6 +82,7 @@ export const useGameStore = create((set, get) => ({
   appraisalQueue: [], // その日の査定対象のスナップショット(在庫は査定中に減っていくため)
   appraisalResolution: null,
   viewedClues: [],
+  revealedObservations: [], // 今回の接客で鑑定机から個別に開示済みの hiddenObservations id
   ending: null,
 
   startNight: () => {
@@ -110,6 +115,8 @@ export const useGameStore = create((set, get) => ({
   currentBuyer: () => get().currentAppraisalItem()?.buyer,
   // 会話パネルは買い(客)・売り(仲買人)の両方で共有する。今どちらの相手と話しているか。
   currentActor: () => (get().screen === "appraisal" ? get().currentBuyer() : get().currentCustomer()),
+  // 鑑定机も買い・売り両方で共有する。今調べている商品はどちらか。
+  currentItem: () => (get().screen === "appraisal" ? get().currentAppraisalItem() : get().currentCustomer()?.item),
 
   talk: (topicId) => {
     const actor = get().currentActor()
@@ -136,15 +143,28 @@ export const useGameStore = create((set, get) => ({
     }))
   },
 
+  // 商品を鑑定台に置く動作。個々の観察結果はここでは開示せず、鑑定机
+  // (revealObservation)で1つずつ選んで調べる。
   inspectItem: () => {
-    const customer = get().currentCustomer()
     if (get().itemRevealed) return
+    set({ itemRevealed: true })
+  },
+
+  // 鑑定机で商品の一部位を調べる。今回の接客で確認できる件数
+  // (item.observationBudget、未設定ならhiddenObservations全件)を超えては
+  // 調べられない。
+  revealObservation: (obsId) => {
+    const item = get().currentItem()
+    if (!item) return
+    const revealed = get().revealedObservations
+    if (revealed.includes(obsId)) return
+    const budget = item.observationBudget ?? item.hiddenObservations.length
+    if (revealed.length >= budget) return
+    const obs = item.hiddenObservations.find((o) => o.id === obsId)
+    if (!obs) return
     set((state) => ({
-      itemRevealed: true,
-      inspection: [
-        ...state.inspection,
-        ...customer.item.hiddenObservations.map((o) => ({ id: o.id, label: o.label, text: o.text })),
-      ],
+      revealedObservations: [...state.revealedObservations, obsId],
+      inspection: [...state.inspection, { id: obs.id, label: obs.label, text: obs.text }],
     }))
   },
 
@@ -236,7 +256,9 @@ export const useGameStore = create((set, get) => ({
         appraisalIndex: 0,
         appraisalQueue: queue,
         appraisalResolution: null,
-        ...(firstItem ? encounterStateFor(firstItem.buyer, null) : { inspection: [], dialogueLog: [], usedTopics: [] }),
+        ...(firstItem
+          ? encounterStateFor(firstItem.buyer, null)
+          : { inspection: [], dialogueLog: [], usedTopics: [], revealedObservations: [] }),
       })
       return
     }

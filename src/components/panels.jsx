@@ -250,6 +250,79 @@ export function ScenePanel({
   )
 }
 
+// 商品の各部位から線を伸ばしたノードで観察結果を個別に開示する鑑定机。
+// ノードの位置はデータにx/yを持たせず、商品を中心に等間隔の角度で自動配置する。
+function ObservationNode({ obs, angleDeg, radiusX, radiusY, revealed, disabled, onReveal }) {
+  const rad = (angleDeg * Math.PI) / 180
+  const left = 50 + radiusX * Math.cos(rad)
+  const top = 50 + radiusY * Math.sin(rad)
+  return (
+    <button
+      className={"obs-node" + (revealed ? " obs-node-revealed" : " obs-node-hidden")}
+      style={{ left: `${left}%`, top: `${top}%` }}
+      disabled={revealed || disabled}
+      onClick={() => onReveal(obs.id)}
+    >
+      <span className="obs-node-label">{obs.label}</span>
+      <span className="obs-node-value">{revealed ? obs.text : "???"}</span>
+    </button>
+  )
+}
+
+export function InspectionDesk({ item }) {
+  const revealedObservations = useGameStore((s) => s.revealedObservations)
+  const revealObservation = useGameStore((s) => s.revealObservation)
+  const [failed, setFailed] = useState(false)
+
+  if (!item) return null
+  const observations = item.hiddenObservations || []
+  const budget = item.observationBudget ?? observations.length
+  const remaining = Math.max(0, budget - revealedObservations.length)
+  const total = observations.length
+  const count = Math.max(observations.length, 1)
+
+  return (
+    <div className="inspection-desk">
+      <p className="obs-budget">
+        鑑定可能な情報: {total} / 今回確認できる情報: {remaining}
+      </p>
+      <div className="inspection-desk-stage">
+        <svg className="obs-lines" viewBox="0 0 100 100" preserveAspectRatio="none">
+          {observations.map((obs, i) => {
+            const angleDeg = (360 / count) * i - 90
+            const rad = (angleDeg * Math.PI) / 180
+            const x2 = 50 + 38 * Math.cos(rad)
+            const y2 = 50 + 34 * Math.sin(rad)
+            return <line key={obs.id} x1="50" y1="50" x2={x2} y2={y2} />
+          })}
+        </svg>
+        {item.image && !failed ? (
+          <img
+            className="inspection-desk-item-img"
+            src={assetUrl(`assets/items/${item.image}.png`)}
+            alt={item.name}
+            onError={() => setFailed(true)}
+          />
+        ) : (
+          <div className="inspection-desk-item-placeholder" aria-hidden="true" />
+        )}
+        {observations.map((obs, i) => (
+          <ObservationNode
+            key={obs.id}
+            obs={obs}
+            angleDeg={(360 / count) * i - 90}
+            radiusX={42}
+            radiusY={38}
+            revealed={revealedObservations.includes(obs.id)}
+            disabled={remaining <= 0}
+            onReveal={revealObservation}
+          />
+        ))}
+      </div>
+    </div>
+  )
+}
+
 export function DialogueLog() {
   const dialogueLog = useGameStore((s) => s.dialogueLog)
   return (

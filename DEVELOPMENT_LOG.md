@@ -2,6 +2,33 @@
 
 ## 進行中
 
+- **接客画面UI改修ラウンド1: 「調べる」を鑑定机UIに変更**(2026-10-01)。
+  ChatGPTの完成イメージ図を見たユーザーから「画面下部が単なるコマンド
+  ボタンの羅列で、店主として調査している感覚がない」というフィードバックを
+  受け、7項目の改修要望のうち最優先の「画面下部を鑑定机にする」を実装。
+  詳細計画は`C:\Users\hamak\.claude\plans\shimmering-squishing-hamming.md`
+  参照(ラウンド2以降: 客クリックの会話メニュー/魂判別機のドラッグ操作/
+  棚の在庫表示/予算に意味を持たせるコンテンツ拡充、は次回以降)。
+  - `inspectItem()`の「hiddenObservationsを一括開示」をやめ、商品を
+    鑑定台に置く動作だけにした。新アクション`revealObservation(obsId)`で
+    部位ごとに1つずつ開示する(`revealedObservations`で今回の接客の
+    開示済みidを管理、`item.observationBudget`(未設定なら全件)を超えて
+    開示できないガード付き)。`currentItem()`getterで買い(客の商品)・
+    売り(査定中の在庫)を共通化(`src/store/gameStore.js`)。
+    `itemToInventory()`に`hiddenObservations`/`description`を追加し、
+    査定画面でも同じ鑑定机が使えるようにした。
+  - 新コンポーネント`InspectionDesk`(`src/components/panels.jsx`):
+    商品画像を中心に、hiddenObservationsを等間隔の角度で自動配置した
+    ノードとして表示し、SVGの線で中心と結ぶ(データにx/y座標を持たせず
+    表示側で計算するため既存データは無改修)。未開示は「???」、開示済みは
+    本文を表示。上部に「鑑定可能な情報: N / 今回確認できる情報: M」を表示。
+  - 「判断する」ボタン群を`.decision-plate`(木目調の見た目)に変更し、
+    見出しを「十分調べた。さて、どうする？」に変更(`NightScreen.jsx`/
+    `AppraisalScreen.jsx`/`index.css`)。ボタンのロジックは無変更。
+  - ブラウザでDay1のダロン(通常客・購入)→イレア(断る)→ノア(断る)→
+    査定(ゲオルグへ売却)まで一通り実行し、鑑定机の個別開示・予算減少・
+    「見た情報」ドロワーへの反映・購入/売却時の所持金増減が正しく動作する
+    ことを確認済み(コンソールエラー・404なし)。
 - **ChatGPT完成イメージ図をもとにUIへアイコンを配線**(2026-09-30)。
   ChatGPTに現状のゲーム画面を見せて描いてもらった完成イメージ図
   (タイトル画面/メイン画面、`memory/chatgpt_concept_mockup_prompts.md`)と
