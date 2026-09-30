@@ -1,6 +1,6 @@
 import { useGameStore } from "../store/gameStore"
 import { REFERENCE } from "../data/days"
-import { InfoOverlay, ScenePanel, DialogueLog, TalkGroup, ResultPanel, IconLabel, InspectionDesk, assetUrl } from "./panels"
+import { InfoOverlay, ScenePanel, DialogueLog, ResultPanel, IconLabel, InspectionDesk, assetUrl } from "./panels"
 
 function TopBar() {
   const day = useGameStore((s) => s.day)
@@ -46,8 +46,6 @@ function SellDialoguePanel({ item }) {
         <ResultPanel resolution={appraisalResolution} onContinue={continueAppraisal} />
       ) : (
         <div className="actions">
-          <TalkGroup topics={item.buyer.topics} />
-
           <InspectionDesk item={item} />
 
           <div className="action-group decision-plate">
@@ -90,6 +88,7 @@ export default function AppraisalScreen() {
           <ScenePanel
             actorName={item.buyer.name}
             actorImage={item.buyer.image}
+            topics={item.buyer.topics}
             backdropImage="appraisal-room-back"
             counterImage="appraisal-desk-front"
             showItemCard

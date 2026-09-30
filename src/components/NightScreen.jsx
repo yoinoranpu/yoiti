@@ -1,5 +1,5 @@
 import { useGameStore } from "../store/gameStore"
-import { InfoOverlay, ScenePanel, DialogueLog, TalkGroup, ResultPanel, IconLabel, InspectionDesk, assetUrl } from "./panels"
+import { InfoOverlay, ScenePanel, DialogueLog, ResultPanel, IconLabel, InspectionDesk, SoulDetectorTool, ShelfDisplay, assetUrl } from "./panels"
 
 function TopBar() {
   const day = useGameStore((s) => s.day)
@@ -38,12 +38,10 @@ function TopBar() {
 function DialoguePanel({ customer }) {
   const hasDetector = useGameStore((s) => s.currentDayConfig().hasDetector)
   const itemRevealed = useGameStore((s) => s.itemRevealed)
-  const soulChecked = useGameStore((s) => s.soulChecked)
   const negotiationFailed = useGameStore((s) => s.negotiationFailed)
   const lastResolution = useGameStore((s) => s.lastResolution)
   const continueToNext = useGameStore((s) => s.continueToNext)
   const inspectItem = useGameStore((s) => s.inspectItem)
-  const checkSoul = useGameStore((s) => s.checkSoul)
   const buyFull = useGameStore((s) => s.buyFull)
   const tryLowball = useGameStore((s) => s.tryLowball)
   const refuse = useGameStore((s) => s.refuse)
@@ -57,8 +55,6 @@ function DialoguePanel({ customer }) {
         <ResultPanel resolution={lastResolution} onContinue={continueToNext} />
       ) : (
         <div className="actions">
-          <TalkGroup topics={customer.topics} />
-
           <div className="action-group">
             <p className="action-group-label">
               <IconLabel icon="icon-inspect">調べる</IconLabel>
@@ -66,14 +62,11 @@ function DialoguePanel({ customer }) {
             <button className="btn btn-topic" disabled={itemRevealed} onClick={inspectItem}>
               <IconLabel icon="icon-inspect">商品を鑑定台に置く</IconLabel>
             </button>
-            {hasDetector && (
-              <button className="btn btn-topic" disabled={soulChecked} onClick={checkSoul}>
-                <IconLabel icon="icon-soul-detector">魂判別機を使う</IconLabel>
-              </button>
-            )}
           </div>
 
           {itemRevealed && <InspectionDesk item={customer.item} />}
+
+          {hasDetector && <SoulDetectorTool item={customer.item} soulCheckText={customer.soulCheckText} />}
 
           <div className="action-group decision-plate">
             <p className="action-group-label">十分調べた。さて、どうする？</p>
@@ -109,6 +102,7 @@ export default function NightScreen({ reference }) {
         <ScenePanel
           actorName={customer.name}
           actorImage={customer.image}
+          topics={customer.topics}
           backdropImage="shop-room-back"
           counterImage="shop-counter-front"
           showItemCard={itemRevealed}
@@ -119,6 +113,7 @@ export default function NightScreen({ reference }) {
           price={customer.item.askPrice}
           illustrationClues={customer.illustrationClues}
         />
+        <ShelfDisplay />
         <InfoOverlay reference={reference} />
       </div>
       <DialoguePanel customer={customer} />

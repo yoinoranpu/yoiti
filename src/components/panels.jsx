@@ -1,4 +1,4 @@
-import { useState } from "react"
+import { useState, useEffect, useRef } from "react"
 import { useGameStore } from "../store/gameStore"
 
 // GitHub Pagesなどサブパス配信(base: "/yoiti/")でも public/assets/ の画像が
@@ -171,6 +171,32 @@ function CharacterFigure({ actorName, image }) {
   )
 }
 
+// 客/買い手をクリックして開く会話メニュー。常時表示のボタン列をやめ、
+// 話しかける相手をクリックする操作に寄せる。話題を選んでも閉じず、
+// 続けて別の話題を選べる(「やめる」か再クリックで閉じる)。
+function TalkMenu({ topics, onClose }) {
+  const usedTopics = useGameStore((s) => s.usedTopics)
+  const talk = useGameStore((s) => s.talk)
+  return (
+    <div className="talk-menu" onClick={(e) => e.stopPropagation()}>
+      <p className="talk-menu-title">客との会話</p>
+      {topics.map((t) => (
+        <button
+          key={t.id}
+          className="talk-menu-item"
+          disabled={usedTopics.includes(t.id)}
+          onClick={() => talk(t.id)}
+        >
+          {t.label}
+        </button>
+      ))}
+      <button className="talk-menu-item talk-menu-close" onClick={onClose}>
+        やめる
+      </button>
+    </div>
+  )
+}
+
 // カウンターに乗る商品アイコン。image が無い・読み込み失敗時は簡素なプレースホルダーに。
 function ItemFigure({ name, image }) {
   const [failed, setFailed] = useState(false)
@@ -204,6 +230,7 @@ function SpeechBubble() {
 export function ScenePanel({
   actorName,
   actorImage,
+  topics,
   showItemCard,
   itemName,
   itemImage,
@@ -214,6 +241,9 @@ export function ScenePanel({
   backdropImage,
   counterImage,
 }) {
+  const [talkOpen, setTalkOpen] = useState(false)
+  useEffect(() => setTalkOpen(false), [actorName])
+
   const backdropStyle = backdropImage
     ? { backgroundImage: `url(${assetUrl(`assets/backgrounds/${backdropImage}.png`)})` }
     : undefined
@@ -224,10 +254,21 @@ export function ScenePanel({
   return (
     <div className={"scene" + (showItemCard ? " scene-focus" : "")}>
       <div className="scene-backdrop" style={backdropStyle} />
-      <div className="scene-actor">
+      <div
+        className={"scene-actor" + (topics ? " scene-actor-clickable" : "")}
+        onClick={() => topics && setTalkOpen((o) => !o)}
+      >
         <CharacterFigure key={actorImage || actorName} actorName={actorName} image={actorImage} />
         <IllustrationHotspots illustrationClues={illustrationClues} />
+        {topics && !talkOpen && (
+          <img className="talk-hint" src={assetUrl("assets/icons/icon-talk.png")} alt="" />
+        )}
       </div>
+      {talkOpen && topics && (
+        <div className="talk-menu-anchor">
+          <TalkMenu topics={topics} onClose={() => setTalkOpen(false)} />
+        </div>
+      )}
       <div className="scene-dialogue-anchor">
         <p className="scene-name">{actorName}</p>
         <SpeechBubble />
@@ -323,6 +364,130 @@ export function InspectionDesk({ item }) {
   )
 }
 
+// 魂判別機をボタンではなく道具として扱う。アイコンを商品にドラッグして
+// かざす操作にする(ただしドラッグせずクリックしただけでも動作する保険つき)。
+export function SoulDetectorTool({ item, soulCheckText }) {
+  const soulChecked = useGameStore((s) => s.soulChecked)
+  const checkSoul = useGameStore((s) => s.checkSoul)
+  const dropRef = useRef(null)
+  const startRef = useRef({ x: 0, y: 0 })
+  const [dragging, setDragging] = useState(false)
+  const [clonePos, setClonePos] = useState({ x: 0, y: 0 })
+  const [flash, setFlash] = useState(false)
+
+  const runCheck = () => {
+    if (soulChecked) return
+    setFlash(true)
+    setTimeout(() => {
+      checkSoul()
+      setFlash(false)
+    }, 500)
+  }
+
+  const onPointerDown = (e) => {
+    if (soulChecked) return
+    e.currentTarget.setPointerCapture(e.pointerId)
+    startRef.current = { x: e.clientX, y: e.clientY }
+    setClonePos({ x: e.clientX, y: e.clientY })
+    setDragging(true)
+  }
+  const onPointerMove = (e) => {
+    if (!dragging) return
+    setClonePos({ x: e.clientX, y: e.clientY })
+  }
+  const onPointerUp = (e) => {
+    if (!dragging) return
+    setDragging(false)
+    const moved = Math.hypot(e.clientX - startRef.current.x, e.clientY - startRef.current.y)
+    if (moved < 10) {
+      runCheck()
+      return
+    }
+    const rect = dropRef.current?.getBoundingClientRect()
+    if (rect && e.clientX >= rect.left && e.clientX <= rect.right && e.clientY >= rect.top && e.clientY <= rect.bottom) {
+      runCheck()
+    }
+  }
+
+  return (
+    <div className="soul-tool-wrap">
+      <div
+        ref={dropRef}
+        className={"soul-target" + (dragging ? " soul-target-active" : "") + (flash ? " soul-flash" : "")}
+      >
+        {item?.image ? (
+          <img className="soul-target-img" src={assetUrl(`assets/items/${item.image}.png`)} alt="" />
+        ) : (
+          <div className="soul-target-placeholder" aria-hidden="true" />
+        )}
+      </div>
+      <button
+        type="button"
+        className={"soul-tool-btn" + (soulChecked ? " soul-tool-btn-done" : "")}
+        disabled={soulChecked}
+        onPointerDown={onPointerDown}
+        onPointerMove={onPointerMove}
+        onPointerUp={onPointerUp}
+      >
+        <img className="soul-tool-icon" src={assetUrl("assets/icons/icon-soul-detector.png")} alt="魂判別機" />
+      </button>
+      {dragging && (
+        <img
+          className="soul-tool-clone"
+          style={{ left: clonePos.x, top: clonePos.y }}
+          src={assetUrl("assets/icons/icon-soul-detector.png")}
+          alt=""
+        />
+      )}
+      <p className="soul-tool-result">{soulChecked ? soulCheckText : "道具を商品にかざして調べる"}</p>
+    </div>
+  )
+}
+
+// 棚に並ぶ買い取り済みの在庫。背景を単なる飾りにせず、7日間営業している
+// 感覚を出す。ただし「観察したことしか分からない」原則を守るため、
+// 魂反応など未確認の秘匿情報はここには出さない(名前と推定価値のみ)。
+function ShelfSlot({ item }) {
+  const [hover, setHover] = useState(false)
+  const [failed, setFailed] = useState(false)
+  return (
+    <div
+      className="shelf-slot"
+      onMouseEnter={() => setHover(true)}
+      onMouseLeave={() => setHover(false)}
+    >
+      {item.image && !failed ? (
+        <img
+          className="shelf-slot-img"
+          src={assetUrl(`assets/items/${item.image}.png`)}
+          alt={item.name}
+          onError={() => setFailed(true)}
+        />
+      ) : (
+        <div className="shelf-slot-placeholder" aria-hidden="true" />
+      )}
+      {hover && (
+        <div className="shelf-tooltip">
+          <p className="shelf-tooltip-name">{item.name}</p>
+          <p className="shelf-tooltip-text">推定価値: {item.trueValue}G</p>
+        </div>
+      )}
+    </div>
+  )
+}
+
+export function ShelfDisplay() {
+  const inventory = useGameStore((s) => s.inventory)
+  if (inventory.length === 0) return null
+  return (
+    <div className="shelf-display">
+      {inventory.map((item) => (
+        <ShelfSlot key={item.invId} item={item} />
+      ))}
+    </div>
+  )
+}
+
 export function DialogueLog() {
   const dialogueLog = useGameStore((s) => s.dialogueLog)
   return (
@@ -352,28 +517,6 @@ export function ResultPanel({ resolution, onContinue }) {
       <button className="btn btn-primary" onClick={onContinue}>
         次へ
       </button>
-    </div>
-  )
-}
-
-export function TalkGroup({ topics }) {
-  const usedTopics = useGameStore((s) => s.usedTopics)
-  const talk = useGameStore((s) => s.talk)
-  return (
-    <div className="action-group">
-      <p className="action-group-label">
-        <IconLabel icon="icon-talk">話す</IconLabel>
-      </p>
-      {topics.map((t) => (
-        <button
-          key={t.id}
-          className="btn btn-topic"
-          disabled={usedTopics.includes(t.id)}
-          onClick={() => talk(t.id)}
-        >
-          {t.label}
-        </button>
-      ))}
     </div>
   )
 }
