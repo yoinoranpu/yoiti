@@ -37,6 +37,7 @@ function TopBar() {
 
 function DialoguePanel({ customer }) {
   const hasDetector = useGameStore((s) => s.currentDayConfig().hasDetector)
+  const engaged = useGameStore((s) => s.engaged)
   const negotiationFailed = useGameStore((s) => s.negotiationFailed)
   const lastResolution = useGameStore((s) => s.lastResolution)
   const continueToNext = useGameStore((s) => s.continueToNext)
@@ -51,10 +52,10 @@ function DialoguePanel({ customer }) {
 
       {lastResolution ? (
         <ResultPanel resolution={lastResolution} onContinue={continueToNext} />
+      ) : !engaged ? (
+        <p className="engage-hint">客をクリックして話を聞こう。</p>
       ) : (
         <div className="actions">
-          <InspectionDesk item={customer.item} hasDetector={hasDetector} soulCheckText={customer.soulCheckText} />
-
           <div className="action-group decision-plate">
             <p className="action-group-label">十分調べた。さて、どうする？</p>
             <button className="btn btn-trade" onClick={buyFull}>
@@ -72,6 +73,8 @@ function DialoguePanel({ customer }) {
               </button>
             )}
           </div>
+
+          <InspectionDesk item={customer.item} hasDetector={hasDetector} soulCheckText={customer.soulCheckText} />
         </div>
       )}
     </div>
@@ -80,6 +83,8 @@ function DialoguePanel({ customer }) {
 
 export default function NightScreen({ reference }) {
   const customer = useGameStore((s) => s.currentCustomer())
+  const engaged = useGameStore((s) => s.engaged)
+  const engageCustomer = useGameStore((s) => s.engageCustomer)
 
   return (
     <div className="night">
@@ -89,6 +94,8 @@ export default function NightScreen({ reference }) {
           actorName={customer.name}
           actorImage={customer.image}
           topics={customer.topics}
+          engaged={engaged}
+          onEngage={engageCustomer}
           backdropImage="shop-room-back"
           counterImage="shop-counter-front"
           showItemCard

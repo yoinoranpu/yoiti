@@ -19,19 +19,29 @@ const itemToInventory = (item) => ({
 
 // soulAutoReveal: 判別機がない日(共鳴)は、客と対面した時点で自動的に
 // 「見た情報」に魂反応が追加される。判別機がある日はnullを渡す。
-const encounterStateFor = (actor, soulAutoReveal) => {
+// requestLine: 客が最初に声をかけてくる一言(「これを買い取ってほしい」等)。
+// arrival(見た目の描写)はセリフではなく観察情報なので「見た情報」に入れる。
+const encounterStateFor = (actor, soulAutoReveal, requestLine) => {
   const inspection = actor.appearance.map((a) => ({ id: a.id, label: a.label, text: a.text }))
+  inspection.push({ id: `${actor.id}-arrival`, label: "第一印象", text: actor.arrival })
   if (soulAutoReveal) {
     inspection.push({ id: `${actor.id}-resonance`, label: "共鳴", text: soulAutoReveal })
   }
   return {
     inspection,
-    dialogueLog: [{ speaker: "narration", text: actor.arrival }],
+    dialogueLog: requestLine ? [{ speaker: actor.name, text: requestLine }] : [],
     usedTopics: [],
     viewedClues: [],
     revealedObservations: [],
+    engaged: false,
   }
 }
+
+// 客が最初に声をかけてくる一言。会話トピックのような作り込みはせず、
+// 既存データ(商品名)だけから自動生成する(客ターン新設にあたり、
+// 個別の客データを書き足さずに済むようにするための割り切り)。
+const nightRequestLine = (customer) => `この${customer.item.name}を買い取ってほしいんだが……`
+const appraisalRequestLine = (item) => `そこの${item.name}を売ってもらえないか？`
 
 // 判別機を失った後は「共鳴」で気づく。企画書9章の通り、魂反応がある時だけ
 // 青白い文字が浮かび上がる演出にする(判別機の針が動く描写とは分けている)。
@@ -82,6 +92,7 @@ export const useGameStore = create((set, get) => ({
   appraisalResolution: null,
   viewedClues: [],
   revealedObservations: [], // 今回の接客で鑑定机から個別に開示済みの hiddenObservations id
+  engaged: false, // 客が声をかけてきた段階(false)か、クリックして接客を始めた段階(true)か
   ending: null,
 
   startNight: () => {
@@ -96,7 +107,7 @@ export const useGameStore = create((set, get) => ({
       marketFavor: 0,
       customerIndex: 0,
       notes: [],
-      ...encounterStateFor(customer, soulRevealFor(customer, day1.hasDetector)),
+      ...encounterStateFor(customer, soulRevealFor(customer, day1.hasDetector), nightRequestLine(customer)),
       soulChecked: false,
       negotiationFailed: false,
       inventory: [],
@@ -115,6 +126,9 @@ export const useGameStore = create((set, get) => ({
   currentActor: () => (get().screen === "appraisal" ? get().currentBuyer() : get().currentCustomer()),
   // 鑑定机も買い・売り両方で共有する。今調べている商品はどちらか。
   currentItem: () => (get().screen === "appraisal" ? get().currentAppraisalItem() : get().currentCustomer()?.item),
+
+  // 客が声をかけてきた段階から、クリックして接客(鑑定机)を始める段階に移る。
+  engageCustomer: () => set({ engaged: true }),
 
   talk: (topicId) => {
     const actor = get().currentActor()
@@ -248,8 +262,8 @@ export const useGameStore = create((set, get) => ({
         appraisalQueue: queue,
         appraisalResolution: null,
         ...(firstItem
-          ? encounterStateFor(firstItem.buyer, null)
-          : { inspection: [], dialogueLog: [], usedTopics: [], revealedObservations: [] }),
+          ? encounterStateFor(firstItem.buyer, null, appraisalRequestLine(firstItem))
+          : { inspection: [], dialogueLog: [], usedTopics: [], revealedObservations: [], engaged: false }),
       })
       return
     }
@@ -257,7 +271,7 @@ export const useGameStore = create((set, get) => ({
     set({
       screen: "night",
       customerIndex: nextIndex,
-      ...encounterStateFor(customer, soulRevealFor(customer, config.hasDetector)),
+      ...encounterStateFor(customer, soulRevealFor(customer, config.hasDetector), nightRequestLine(customer)),
       soulChecked: false,
       negotiationFailed: false,
       lastResolution: null,
@@ -324,7 +338,7 @@ export const useGameStore = create((set, get) => ({
     set({
       appraisalIndex: nextIndex,
       appraisalResolution: null,
-      ...(nextItem ? encounterStateFor(nextItem.buyer, null) : {}),
+      ...(nextItem ? encounterStateFor(nextItem.buyer, null, appraisalRequestLine(nextItem)) : {}),
     })
   },
 
@@ -360,7 +374,7 @@ export const useGameStore = create((set, get) => ({
       quota: nextConfig.quota,
       customerIndex: 0,
       screen: "night",
-      ...encounterStateFor(firstCustomer, soulRevealFor(firstCustomer, nextConfig.hasDetector)),
+      ...encounterStateFor(firstCustomer, soulRevealFor(firstCustomer, nextConfig.hasDetector), nightRequestLine(firstCustomer)),
       soulChecked: false,
       negotiationFailed: false,
       lastResolution: null,

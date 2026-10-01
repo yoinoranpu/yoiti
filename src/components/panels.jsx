@@ -174,12 +174,27 @@ function CharacterFigure({ actorName, image }) {
 // 客/買い手をクリックして開く会話メニュー。常時表示のボタン列をやめ、
 // 話しかける相手をクリックする操作に寄せる。話題を選んでも閉じず、
 // 続けて別の話題を選べる(「やめる」か再クリックで閉じる)。
-function TalkMenu({ topics, onClose }) {
+function TalkMenu({ topics, actorName, actorImage, onClose }) {
   const usedTopics = useGameStore((s) => s.usedTopics)
   const talk = useGameStore((s) => s.talk)
+  const [failed, setFailed] = useState(false)
   return (
     <div className="talk-menu" onClick={(e) => e.stopPropagation()}>
-      <p className="talk-menu-title">客との会話</p>
+      <div className="talk-menu-header">
+        {actorImage && !failed ? (
+          <img
+            className="talk-menu-portrait"
+            src={assetUrl(`assets/characters/${actorImage}.png`)}
+            alt=""
+            onError={() => setFailed(true)}
+          />
+        ) : (
+          <div className="talk-menu-portrait-placeholder" aria-hidden="true">
+            {actorName?.[0]}
+          </div>
+        )}
+        <p className="talk-menu-title">客との会話</p>
+      </div>
       {topics.map((t) => (
         <button
           key={t.id}
@@ -231,6 +246,8 @@ export function ScenePanel({
   actorName,
   actorImage,
   topics,
+  engaged,
+  onEngage,
   showItemCard,
   itemName,
   itemImage,
@@ -251,30 +268,44 @@ export function ScenePanel({
     ? { backgroundImage: `url(${assetUrl(`assets/backgrounds/${counterImage}.png`)})` }
     : undefined
 
+  const handleActorClick = () => {
+    if (!engaged) {
+      onEngage?.()
+      return
+    }
+    if (topics) setTalkOpen((o) => !o)
+  }
+
   return (
-    <div className={"scene" + (showItemCard ? " scene-focus" : "")}>
+    <div className="scene">
       <div className="scene-backdrop" style={backdropStyle} />
       <div
-        className={"scene-actor" + (topics ? " scene-actor-clickable" : "")}
-        onClick={() => topics && setTalkOpen((o) => !o)}
+        className={"scene-actor" + (topics || !engaged ? " scene-actor-clickable" : "")}
+        onClick={handleActorClick}
       >
         <CharacterFigure key={actorImage || actorName} actorName={actorName} image={actorImage} />
         <IllustrationHotspots illustrationClues={illustrationClues} />
-        {topics && !talkOpen && (
+        {engaged && topics && !talkOpen && (
           <img className="talk-hint" src={assetUrl("assets/icons/icon-talk.png")} alt="" />
         )}
       </div>
       {talkOpen && topics && (
         <div className="talk-menu-anchor">
-          <TalkMenu topics={topics} onClose={() => setTalkOpen(false)} />
+          <TalkMenu
+            topics={topics}
+            actorName={actorName}
+            actorImage={actorImage}
+            onClose={() => setTalkOpen(false)}
+          />
         </div>
       )}
       <div className="scene-dialogue-anchor">
         <p className="scene-name">{actorName}</p>
         <SpeechBubble />
+        {!engaged && <p className="engage-hint">客をクリックして話を聞こう</p>}
       </div>
       <div className="counter" style={counterStyle}>
-        {showItemCard && (
+        {showItemCard && engaged && (
           <div className="counter-item">
             <ItemFigure name={itemName} image={itemImage} />
             <div className="counter-item-info">
@@ -317,6 +348,7 @@ export function InspectionDesk({ item, hasDetector, soulCheckText }) {
   const revealedObservations = useGameStore((s) => s.revealedObservations)
   const revealObservation = useGameStore((s) => s.revealObservation)
   const [failed, setFailed] = useState(false)
+  const itemDropRef = useRef(null)
 
   if (!item) return null
   const observations = item.hiddenObservations || []
@@ -341,16 +373,18 @@ export function InspectionDesk({ item, hasDetector, soulCheckText }) {
               return <line key={obs.id} x1="50" y1="50" x2={x2} y2={y2} />
             })}
           </svg>
-          {item.image && !failed ? (
-            <img
-              className="inspection-desk-item-img"
-              src={assetUrl(`assets/items/${item.image}.png`)}
-              alt={item.name}
-              onError={() => setFailed(true)}
-            />
-          ) : (
-            <div className="inspection-desk-item-placeholder" aria-hidden="true" />
-          )}
+          <div ref={itemDropRef} className="inspection-desk-item-dropzone">
+            {item.image && !failed ? (
+              <img
+                className="inspection-desk-item-img"
+                src={assetUrl(`assets/items/${item.image}.png`)}
+                alt={item.name}
+                onError={() => setFailed(true)}
+              />
+            ) : (
+              <div className="inspection-desk-item-placeholder" aria-hidden="true" />
+            )}
+          </div>
           {observations.map((obs, i) => (
             <ObservationNode
               key={obs.id}
@@ -364,29 +398,31 @@ export function InspectionDesk({ item, hasDetector, soulCheckText }) {
             />
           ))}
         </div>
-        {hasDetector && <SoulDetectorTool item={item} soulCheckText={soulCheckText} />}
+        {hasDetector && (
+          <SoulDetectorTool dropZoneRef={itemDropRef} soulCheckText={soulCheckText} />
+        )}
       </div>
     </div>
   )
 }
 
-// 魂判別機をボタンではなく道具として扱う。アイコンを商品にドラッグして
-// かざす操作にする(ただしドラッグせずクリックしただけでも動作する保険つき)。
-export function SoulDetectorTool({ item, soulCheckText }) {
+// 魂判別機をボタンではなく道具として扱う。アイコンを、鑑定机中央の商品
+// (dropZoneRef)に直接ドラッグしてかざす操作にする(ドラッグせずクリック
+// しただけでも動作する保険つき)。判別機自体は商品の縮小コピーを持たず、
+// 中央の実物だけが対象になるようにする。
+export function SoulDetectorTool({ dropZoneRef, soulCheckText }) {
   const soulChecked = useGameStore((s) => s.soulChecked)
   const checkSoul = useGameStore((s) => s.checkSoul)
-  const dropRef = useRef(null)
   const startRef = useRef({ x: 0, y: 0 })
   const [dragging, setDragging] = useState(false)
   const [clonePos, setClonePos] = useState({ x: 0, y: 0 })
-  const [flash, setFlash] = useState(false)
 
   const runCheck = () => {
     if (soulChecked) return
-    setFlash(true)
+    dropZoneRef?.current?.classList.add("item-drop-flash")
     setTimeout(() => {
       checkSoul()
-      setFlash(false)
+      dropZoneRef?.current?.classList.remove("item-drop-flash")
     }, 500)
   }
 
@@ -396,6 +432,7 @@ export function SoulDetectorTool({ item, soulCheckText }) {
     startRef.current = { x: e.clientX, y: e.clientY }
     setClonePos({ x: e.clientX, y: e.clientY })
     setDragging(true)
+    dropZoneRef?.current?.classList.add("item-drop-active")
   }
   const onPointerMove = (e) => {
     if (!dragging) return
@@ -404,12 +441,13 @@ export function SoulDetectorTool({ item, soulCheckText }) {
   const onPointerUp = (e) => {
     if (!dragging) return
     setDragging(false)
+    dropZoneRef?.current?.classList.remove("item-drop-active")
     const moved = Math.hypot(e.clientX - startRef.current.x, e.clientY - startRef.current.y)
     if (moved < 10) {
       runCheck()
       return
     }
-    const rect = dropRef.current?.getBoundingClientRect()
+    const rect = dropZoneRef?.current?.getBoundingClientRect()
     if (rect && e.clientX >= rect.left && e.clientX <= rect.right && e.clientY >= rect.top && e.clientY <= rect.bottom) {
       runCheck()
     }
@@ -417,16 +455,6 @@ export function SoulDetectorTool({ item, soulCheckText }) {
 
   return (
     <div className="soul-tool-wrap">
-      <div
-        ref={dropRef}
-        className={"soul-target" + (dragging ? " soul-target-active" : "") + (flash ? " soul-flash" : "")}
-      >
-        {item?.image ? (
-          <img className="soul-target-img" src={assetUrl(`assets/items/${item.image}.png`)} alt="" />
-        ) : (
-          <div className="soul-target-placeholder" aria-hidden="true" />
-        )}
-      </div>
       <button
         type="button"
         className={"soul-tool-btn" + (soulChecked ? " soul-tool-btn-done" : "")}

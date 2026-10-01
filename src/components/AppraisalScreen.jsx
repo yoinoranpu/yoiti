@@ -32,6 +32,7 @@ function TopBar() {
 }
 
 function SellDialoguePanel({ item }) {
+  const engaged = useGameStore((s) => s.engaged)
   const appraisalResolution = useGameStore((s) => s.appraisalResolution)
   const continueAppraisal = useGameStore((s) => s.continueAppraisal)
   const sellAtValue = useGameStore((s) => s.sellAtValue)
@@ -44,10 +45,10 @@ function SellDialoguePanel({ item }) {
 
       {appraisalResolution ? (
         <ResultPanel resolution={appraisalResolution} onContinue={continueAppraisal} />
+      ) : !engaged ? (
+        <p className="engage-hint">買い手をクリックして話を聞こう。</p>
       ) : (
         <div className="actions">
-          <InspectionDesk item={item} />
-
           <div className="action-group decision-plate">
             <p className="action-group-label">十分調べた。さて、どうする？</p>
             <button className="btn btn-trade" onClick={sellAtValue}>
@@ -60,6 +61,8 @@ function SellDialoguePanel({ item }) {
               <IconLabel icon="icon-refuse">やめておく</IconLabel>
             </button>
           </div>
+
+          <InspectionDesk item={item} />
         </div>
       )}
     </div>
@@ -76,6 +79,8 @@ export default function AppraisalScreen() {
   const remaining = useGameStore((s) => s.inventory.length)
   const endDay = useGameStore((s) => s.endDay)
   const triggerRobbery = useGameStore((s) => s.triggerRobbery)
+  const engaged = useGameStore((s) => s.engaged)
+  const engageCustomer = useGameStore((s) => s.engageCustomer)
 
   const done = appraisalIndex >= appraisalQueue.length
 
@@ -89,6 +94,8 @@ export default function AppraisalScreen() {
             actorName={item.buyer.name}
             actorImage={item.buyer.image}
             topics={item.buyer.topics}
+            engaged={engaged}
+            onEngage={engageCustomer}
             backdropImage="appraisal-room-back"
             counterImage="appraisal-desk-front"
             showItemCard

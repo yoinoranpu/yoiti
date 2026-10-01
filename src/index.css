@@ -345,7 +345,7 @@ button {
 
 .scene-figure-img {
   display: block;
-  width: 260px;
+  width: 300px;
   height: auto;
   image-rendering: pixelated;
 }
@@ -452,14 +452,13 @@ button {
   border-top: 2px solid #4a3626;
 }
 
-.scene-focus .scene-backdrop {
-  filter: brightness(0.35);
-}
-
-.scene-focus .scene-actor,
-.scene-focus .scene-dialogue-anchor {
-  opacity: 0.35;
-  transform: translateX(-50%) scale(0.9);
+.engage-hint {
+  margin: 0.3rem 0 0;
+  font-size: 0.8rem;
+  color: var(--color-text-dim);
+  background: rgba(14, 11, 18, 0.55);
+  padding: 0.2rem 0.6rem;
+  border-radius: 3px;
 }
 
 /* カウンターの上に乗る商品。宙に浮くカードではなく、カウンター面に
@@ -632,19 +631,18 @@ button {
 
 .inspection-desk-row {
   display: flex;
-  gap: 0.8rem;
+  gap: 0;
   flex: 1;
   min-height: 0;
+  background: radial-gradient(circle at 40% 45%, var(--color-panel-alt), var(--color-bg) 85%);
+  border-radius: 4px;
+  overflow: hidden;
 }
 
 .inspection-desk-stage {
   position: relative;
   flex: 1;
   min-width: 0;
-  background: radial-gradient(circle at 50% 50%, var(--color-panel-alt), var(--color-bg) 80%);
-  border: 1px solid var(--color-border);
-  border-radius: 4px;
-  overflow: hidden;
 }
 
 .obs-lines {
@@ -660,11 +658,21 @@ button {
   opacity: 0.4;
 }
 
-.inspection-desk-item-img {
+.inspection-desk-item-dropzone {
   position: absolute;
   left: 50%;
   top: 50%;
   transform: translate(-50%, -50%);
+  width: 170px;
+  height: 170px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  transition: box-shadow 0.2s ease;
+}
+
+.inspection-desk-item-img {
   width: 150px;
   height: 150px;
   object-fit: contain;
@@ -673,15 +681,21 @@ button {
 }
 
 .inspection-desk-item-placeholder {
-  position: absolute;
-  left: 50%;
-  top: 50%;
-  transform: translate(-50%, -50%);
   width: 150px;
   height: 150px;
   border-radius: 4px;
   background: var(--color-panel-alt);
   border: 1px solid var(--color-border);
+}
+
+/* 魂判別機のドラッグ中/判定中、対象が「今まさに調べられている商品」だと
+   わかるよう中央の商品自体を光らせる(判別機自体の縮小コピーは持たない)。 */
+.item-drop-active {
+  box-shadow: 0 0 0 3px rgba(138, 95, 214, 0.5), 0 0 18px rgba(138, 95, 214, 0.6);
+}
+
+.item-drop-flash {
+  animation: soul-flash-pulse 0.5s ease-out;
 }
 
 .obs-node {
@@ -807,8 +821,38 @@ button {
   box-shadow: 0 4px 16px rgba(0, 0, 0, 0.6);
 }
 
+.talk-menu-header {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 0.1rem;
+}
+
+.talk-menu-portrait {
+  width: 32px;
+  height: 32px;
+  object-fit: cover;
+  object-position: top;
+  border-radius: 50%;
+  border: 1px solid var(--color-border);
+  image-rendering: pixelated;
+}
+
+.talk-menu-portrait-placeholder {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: var(--color-panel-alt);
+  border: 1px solid var(--color-border);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.9rem;
+  color: var(--color-text-dim);
+}
+
 .talk-menu-title {
-  margin: 0 0 0.1rem;
+  margin: 0;
   font-size: 0.72rem;
   color: var(--color-text-dim);
 }
@@ -851,48 +895,9 @@ button {
   gap: 0.9rem;
   width: 170px;
   flex-shrink: 0;
-  background: radial-gradient(circle at 50% 35%, var(--color-panel-alt), var(--color-bg) 85%);
-  border: 1px solid var(--color-border);
-  border-radius: 4px;
+  border-left: 1px solid var(--color-border);
   padding: 1rem 0.8rem;
   text-align: center;
-}
-
-.soul-target {
-  position: relative;
-  width: 72px;
-  height: 72px;
-  flex-shrink: 0;
-  border-radius: 4px;
-  border: 1px solid var(--color-border);
-  background: var(--color-panel-alt);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  transition: border-color 0.2s ease, box-shadow 0.2s ease;
-}
-
-.soul-target-img {
-  width: 58px;
-  height: 58px;
-  object-fit: contain;
-  image-rendering: pixelated;
-}
-
-.soul-target-placeholder {
-  width: 46px;
-  height: 46px;
-  border-radius: 3px;
-  background: var(--color-panel);
-}
-
-.soul-target-active {
-  border-color: var(--color-soul);
-  box-shadow: 0 0 10px rgba(138, 95, 214, 0.6);
-}
-
-.soul-flash {
-  animation: soul-flash-pulse 0.5s ease-out;
 }
 
 @keyframes soul-flash-pulse {
@@ -962,7 +967,7 @@ button {
 .shelf-display {
   position: absolute;
   right: 18px;
-  top: 50%;
+  top: 64%;
   transform: translateY(-50%);
   z-index: 2;
   display: flex;
