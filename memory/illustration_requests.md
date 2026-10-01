@@ -67,6 +67,31 @@ panel, seen from the customer's side, a few small vague trinkets and a
 lantern resting on the surface, warm amber highlight #c9a24a.
 ```
 
+### `inspection-desk-back.png` — 鑑定机エリア(画面下半分)の背景(2026-10-01追加)
+切り抜き不要。商品を置く鑑定机と魂判別機の台をまとめて覆う、横長1枚のパネル背景。
+UI改修で「枠(CSSのボーダー)が煩わしい」という指摘があり、CSSの箱組みを実イラスト
+で置き換えるために追加した。商品アイコン・観察ノードのラベル・判別機アイコンは
+すべてこの背景の上にUI側で重ねて表示するので、中央〜左側は過度に描き込まず
+空けておくこと。
+```
+Pixel art, no anti-aliasing, crisp pixel edges, limited dark color palette
+(near-black purple #0e0b12 background, warm worn-wood browns, amber lantern
+highlight #c9a24a as the dominant light). Very wide, short panoramic strip
+(roughly 5:1 width to height), no characters.
+A worn wooden examination desk seen from slightly above. The left
+three-quarters of the frame is dominated by an open sheet of parchment or a
+loosely rolled-out map lying flat on the wood — keep the center of this
+parchment visually quiet and uncluttered, with no large objects drawn on
+it, so a prop and small labels can be overlaid on top of it digitally
+afterward. On the right quarter of the frame, the wood gives way to a
+small inset stone or tarnished brass pedestal built into the desktop,
+carved with faint occult markings and a shallow empty depression as if
+meant to cradle a hand-held device — do not draw any tool or device sitting
+in it, leave that space empty. A few incidental clutter items (an inkwell,
+a magnifying glass, a loose coin or two) only near the far edges of the
+frame, away from the center and away from the pedestal.
+```
+
 ### `title-screen.png` — タイトル画面背景
 ```
 Pixel art, no anti-aliasing, crisp pixel edges, limited dark color palette
