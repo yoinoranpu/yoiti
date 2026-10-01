@@ -49,6 +49,10 @@ function SellDialoguePanel({ item }) {
         <p className="engage-hint">買い手をクリックして話を聞こう。</p>
       ) : (
         <div className="actions">
+          <InspectionDesk item={item} />
+
+          <div className="desk-divider" aria-hidden="true" />
+
           <div className="action-group decision-plate">
             <p className="action-group-label">十分調べた。さて、どうする？</p>
             <button className="btn btn-trade" onClick={sellAtValue}>
@@ -61,8 +65,6 @@ function SellDialoguePanel({ item }) {
               <IconLabel icon="icon-refuse">やめておく</IconLabel>
             </button>
           </div>
-
-          <InspectionDesk item={item} />
         </div>
       )}
     </div>

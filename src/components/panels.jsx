@@ -324,6 +324,8 @@ export function ScenePanel({
 
 // 商品の各部位から線を伸ばしたノードで観察結果を個別に開示する鑑定机。
 // ノードの位置はデータにx/yを持たせず、商品を中心に等間隔の角度で自動配置する。
+// 未鑑定は古い紙札風の見た目で「???」、鑑定した瞬間にインクが乗るような
+// 小さな演出(obs-node-revealedのCSSアニメーション)を入れる。
 function ObservationNode({ obs, angleDeg, radiusX, radiusY, revealed, disabled, onReveal }) {
   const rad = (angleDeg * Math.PI) / 180
   const left = 50 + radiusX * Math.cos(rad)
@@ -341,6 +343,23 @@ function ObservationNode({ obs, angleDeg, radiusX, radiusY, revealed, disabled, 
   )
 }
 
+// 「今回確認できる情報」を文章だけでなく、虫眼鏡マーカーの列で視覚化する。
+// 使った分だけ暗く(使用済みに)なり、残り何回調べられるか一目で分かる。
+function ObservationBudgetPips({ budget, used }) {
+  return (
+    <div className="obs-budget-pips">
+      {Array.from({ length: budget }).map((_, i) => (
+        <img
+          key={i}
+          className={"obs-pip" + (i < used ? " obs-pip-used" : "")}
+          src={assetUrl("assets/icons/icon-inspect.png")}
+          alt=""
+        />
+      ))}
+    </div>
+  )
+}
+
 // 画面下半分そのものを鑑定机にする。商品(左)・そこから伸びる観察ノード・
 // 魂判別機(右、hasDetectorの日だけ)を1つの机としてまとめて常時表示する。
 // 「鑑定台に置く」という前段操作は廃止し、客と対面した時点から調べられる。
@@ -353,15 +372,20 @@ export function InspectionDesk({ item, hasDetector, soulCheckText }) {
   if (!item) return null
   const observations = item.hiddenObservations || []
   const budget = item.observationBudget ?? observations.length
-  const remaining = Math.max(0, budget - revealedObservations.length)
+  const used = revealedObservations.length
+  const remaining = Math.max(0, budget - used)
   const total = observations.length
   const count = Math.max(observations.length, 1)
 
   return (
     <div className="inspection-desk">
-      <p className="obs-budget">
-        鑑定可能な情報: {total} / 今回確認できる情報: {remaining}
-      </p>
+      <div className="obs-budget">
+        <p className="desk-phase-label">鑑定: 気になる部分を調べる</p>
+        <span className="obs-budget-text">
+          鑑定可能な情報: {total} / 残り {remaining}
+        </span>
+        <ObservationBudgetPips budget={budget} used={used} />
+      </div>
       <div
         className="inspection-desk-row"
         style={{ backgroundImage: `url(${assetUrl("assets/backgrounds/inspection-desk-back.png")})` }}
@@ -373,7 +397,17 @@ export function InspectionDesk({ item, hasDetector, soulCheckText }) {
               const rad = (angleDeg * Math.PI) / 180
               const x2 = 50 + 40 * Math.cos(rad)
               const y2 = 50 + 36 * Math.sin(rad)
-              return <line key={obs.id} x1="50" y1="50" x2={x2} y2={y2} />
+              const revealed = revealedObservations.includes(obs.id)
+              return (
+                <line
+                  key={obs.id}
+                  className={revealed ? "obs-line-revealed" : ""}
+                  x1="50"
+                  y1="50"
+                  x2={x2}
+                  y2={y2}
+                />
+              )
             })}
           </svg>
           <div ref={itemDropRef} className="inspection-desk-item-dropzone">
@@ -435,16 +469,27 @@ export function SoulDetectorTool({ dropZoneRef, soulCheckText }) {
     startRef.current = { x: e.clientX, y: e.clientY }
     setClonePos({ x: e.clientX, y: e.clientY })
     setDragging(true)
-    dropZoneRef?.current?.classList.add("item-drop-active")
   }
+  // ドラッグ中、商品への距離に応じて「近づける→弱く光る→かざす」の段階を
+  // つける。離れている間はclassを外し、近づくほど強い紫の光に切り替わる。
   const onPointerMove = (e) => {
     if (!dragging) return
     setClonePos({ x: e.clientX, y: e.clientY })
+    const rect = dropZoneRef?.current?.getBoundingClientRect()
+    if (!rect) return
+    const cx = rect.left + rect.width / 2
+    const cy = rect.top + rect.height / 2
+    const dist = Math.hypot(e.clientX - cx, e.clientY - cy)
+    const over =
+      e.clientX >= rect.left && e.clientX <= rect.right && e.clientY >= rect.top && e.clientY <= rect.bottom
+    const near = dist < Math.max(rect.width, rect.height) * 1.6
+    dropZoneRef.current.classList.toggle("item-drop-active", over)
+    dropZoneRef.current.classList.toggle("item-drop-near", near && !over)
   }
   const onPointerUp = (e) => {
     if (!dragging) return
     setDragging(false)
-    dropZoneRef?.current?.classList.remove("item-drop-active")
+    dropZoneRef?.current?.classList.remove("item-drop-active", "item-drop-near")
     const moved = Math.hypot(e.clientX - startRef.current.x, e.clientY - startRef.current.y)
     if (moved < 10) {
       runCheck()
@@ -507,6 +552,11 @@ function ShelfSlot({ item }) {
         <div className="shelf-tooltip">
           <p className="shelf-tooltip-name">{item.name}</p>
           <p className="shelf-tooltip-text">推定価値: {item.trueValue}G</p>
+          {item.hiddenObservations && (
+            <p className="shelf-tooltip-text">
+              鑑定済み: {item.observedCount ?? 0}/{item.hiddenObservations.length}
+            </p>
+          )}
         </div>
       )}
     </div>

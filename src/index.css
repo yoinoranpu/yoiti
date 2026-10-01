@@ -624,9 +624,41 @@ button {
 }
 
 .obs-budget {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.5rem 0.8rem;
+}
+
+.desk-phase-label {
   margin: 0;
-  font-size: 0.75rem;
+  font-size: 0.78rem;
+  color: var(--color-accent);
+  letter-spacing: 0.04em;
+}
+
+.obs-budget-text {
+  font-size: 0.72rem;
   color: var(--color-text-dim);
+}
+
+.obs-budget-pips {
+  display: flex;
+  gap: 0.25rem;
+  margin-left: auto;
+}
+
+.obs-pip {
+  width: 16px;
+  height: 16px;
+  image-rendering: pixelated;
+  opacity: 0.95;
+  filter: drop-shadow(0 0 2px rgba(201, 162, 74, 0.5));
+}
+
+.obs-pip-used {
+  opacity: 0.25;
+  filter: grayscale(1);
 }
 
 .inspection-desk-row {
@@ -659,7 +691,13 @@ button {
 .obs-lines line {
   stroke: var(--color-accent);
   stroke-width: 0.5;
-  opacity: 0.4;
+  opacity: 0.35;
+  transition: opacity 0.3s ease, stroke-width 0.3s ease;
+}
+
+.obs-lines line.obs-line-revealed {
+  opacity: 0.85;
+  stroke-width: 0.8;
 }
 
 .inspection-desk-item-dropzone {
@@ -694,6 +732,10 @@ button {
 
 /* 魂判別機のドラッグ中/判定中、対象が「今まさに調べられている商品」だと
    わかるよう中央の商品自体を光らせる(判別機自体の縮小コピーは持たない)。 */
+.item-drop-near {
+  box-shadow: 0 0 0 2px rgba(138, 95, 214, 0.25), 0 0 10px rgba(138, 95, 214, 0.3);
+}
+
 .item-drop-active {
   box-shadow: 0 0 0 3px rgba(138, 95, 214, 0.5), 0 0 18px rgba(138, 95, 214, 0.6);
 }
@@ -702,6 +744,8 @@ button {
   animation: soul-flash-pulse 0.5s ease-out;
 }
 
+/* 古い紙札のような見た目。鑑定前は紙だけ、鑑定した瞬間にインクが乗るような
+   ポップ演出(obs-reveal-pop)を入れる。 */
 .obs-node {
   position: absolute;
   transform: translate(-50%, -50%);
@@ -710,23 +754,35 @@ button {
   align-items: center;
   gap: 0.15rem;
   padding: 0.4rem 0.7rem;
-  border-radius: 3px;
-  border: 1px solid var(--color-border);
-  background: rgba(14, 11, 18, 0.85);
+  border-radius: 2px;
+  border: 1px solid #6b5a3a;
+  background: linear-gradient(180deg, #d9cca3, #c4b587);
   cursor: pointer;
   max-width: 150px;
   text-align: center;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
 }
 
 .obs-node-label {
   font-size: 0.82rem;
-  color: var(--color-accent);
+  color: #5c4a26;
+  font-weight: bold;
 }
 
 .obs-node-value {
   font-size: 0.76rem;
-  color: var(--color-text-dim);
+  color: #4a3f28;
   white-space: normal;
+}
+
+.obs-node-hidden {
+  background: linear-gradient(180deg, #8a7c5c, #6e6248);
+  border-color: #4a3f28;
+}
+
+.obs-node-hidden .obs-node-label,
+.obs-node-hidden .obs-node-value {
+  color: #d8cfb4;
 }
 
 .obs-node-hidden:hover:not(:disabled) {
@@ -734,17 +790,36 @@ button {
 }
 
 .obs-node-revealed {
-  border-color: var(--color-accent);
   cursor: default;
-}
-
-.obs-node-revealed .obs-node-value {
-  color: var(--color-text);
+  animation: obs-reveal-pop 0.4s ease-out;
 }
 
 .obs-node:disabled:not(.obs-node-revealed) {
-  opacity: 0.4;
+  opacity: 0.45;
   cursor: default;
+}
+
+@keyframes obs-reveal-pop {
+  0% {
+    transform: translate(-50%, -50%) scale(0.85);
+    box-shadow: 0 0 2px rgba(201, 162, 74, 0.2);
+  }
+  55% {
+    transform: translate(-50%, -50%) scale(1.08);
+    box-shadow: 0 0 14px rgba(201, 162, 74, 0.8);
+  }
+  100% {
+    transform: translate(-50%, -50%) scale(1);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
+  }
+}
+
+/* 鑑定机(調べる場所)と判断エリア(決める場所)の境界をはっきり分ける。 */
+.desk-divider {
+  flex-shrink: 0;
+  height: 2px;
+  margin: 0.1rem 0;
+  background: linear-gradient(90deg, transparent, var(--color-border) 15%, var(--color-border) 85%, transparent);
 }
 
 /* --- decision plate ---

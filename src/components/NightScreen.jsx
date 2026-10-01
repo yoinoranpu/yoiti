@@ -56,6 +56,10 @@ function DialoguePanel({ customer }) {
         <p className="engage-hint">客をクリックして話を聞こう。</p>
       ) : (
         <div className="actions">
+          <InspectionDesk item={customer.item} hasDetector={hasDetector} soulCheckText={customer.soulCheckText} />
+
+          <div className="desk-divider" aria-hidden="true" />
+
           <div className="action-group decision-plate">
             <p className="action-group-label">十分調べた。さて、どうする？</p>
             <button className="btn btn-trade" onClick={buyFull}>
@@ -73,8 +77,6 @@ function DialoguePanel({ customer }) {
               </button>
             )}
           </div>
-
-          <InspectionDesk item={customer.item} hasDetector={hasDetector} soulCheckText={customer.soulCheckText} />
         </div>
       )}
     </div>
