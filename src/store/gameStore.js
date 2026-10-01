@@ -73,7 +73,6 @@ export const useGameStore = create((set, get) => ({
   inspection: [],
   dialogueLog: [],
   usedTopics: [],
-  itemRevealed: false,
   soulChecked: false,
   negotiationFailed: false,
   inventory: [], // 週をまたいで持ち越す在庫。売れた品だけ取り除き、やめた品は残す。
@@ -98,7 +97,6 @@ export const useGameStore = create((set, get) => ({
       customerIndex: 0,
       notes: [],
       ...encounterStateFor(customer, soulRevealFor(customer, day1.hasDetector)),
-      itemRevealed: false,
       soulChecked: false,
       negotiationFailed: false,
       inventory: [],
@@ -141,13 +139,6 @@ export const useGameStore = create((set, get) => ({
       viewedClues: [...state.viewedClues, clueId],
       inspection: [...state.inspection, { id: clue.id, label: clue.label, text: clue.text }],
     }))
-  },
-
-  // 商品を鑑定台に置く動作。個々の観察結果はここでは開示せず、鑑定机
-  // (revealObservation)で1つずつ選んで調べる。
-  inspectItem: () => {
-    if (get().itemRevealed) return
-    set({ itemRevealed: true })
   },
 
   // 鑑定机で商品の一部位を調べる。今回の接客で確認できる件数
@@ -267,7 +258,6 @@ export const useGameStore = create((set, get) => ({
       screen: "night",
       customerIndex: nextIndex,
       ...encounterStateFor(customer, soulRevealFor(customer, config.hasDetector)),
-      itemRevealed: false,
       soulChecked: false,
       negotiationFailed: false,
       lastResolution: null,
@@ -371,7 +361,6 @@ export const useGameStore = create((set, get) => ({
       customerIndex: 0,
       screen: "night",
       ...encounterStateFor(firstCustomer, soulRevealFor(firstCustomer, nextConfig.hasDetector)),
-      itemRevealed: false,
       soulChecked: false,
       negotiationFailed: false,
       lastResolution: null,

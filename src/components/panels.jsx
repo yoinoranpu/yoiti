@@ -310,7 +310,10 @@ function ObservationNode({ obs, angleDeg, radiusX, radiusY, revealed, disabled, 
   )
 }
 
-export function InspectionDesk({ item }) {
+// 画面下半分そのものを鑑定机にする。商品(左)・そこから伸びる観察ノード・
+// 魂判別機(右、hasDetectorの日だけ)を1つの机としてまとめて常時表示する。
+// 「鑑定台に置く」という前段操作は廃止し、客と対面した時点から調べられる。
+export function InspectionDesk({ item, hasDetector, soulCheckText }) {
   const revealedObservations = useGameStore((s) => s.revealedObservations)
   const revealObservation = useGameStore((s) => s.revealObservation)
   const [failed, setFailed] = useState(false)
@@ -327,38 +330,41 @@ export function InspectionDesk({ item }) {
       <p className="obs-budget">
         鑑定可能な情報: {total} / 今回確認できる情報: {remaining}
       </p>
-      <div className="inspection-desk-stage">
-        <svg className="obs-lines" viewBox="0 0 100 100" preserveAspectRatio="none">
-          {observations.map((obs, i) => {
-            const angleDeg = (360 / count) * i - 90
-            const rad = (angleDeg * Math.PI) / 180
-            const x2 = 50 + 38 * Math.cos(rad)
-            const y2 = 50 + 34 * Math.sin(rad)
-            return <line key={obs.id} x1="50" y1="50" x2={x2} y2={y2} />
-          })}
-        </svg>
-        {item.image && !failed ? (
-          <img
-            className="inspection-desk-item-img"
-            src={assetUrl(`assets/items/${item.image}.png`)}
-            alt={item.name}
-            onError={() => setFailed(true)}
-          />
-        ) : (
-          <div className="inspection-desk-item-placeholder" aria-hidden="true" />
-        )}
-        {observations.map((obs, i) => (
-          <ObservationNode
-            key={obs.id}
-            obs={obs}
-            angleDeg={(360 / count) * i - 90}
-            radiusX={42}
-            radiusY={38}
-            revealed={revealedObservations.includes(obs.id)}
-            disabled={remaining <= 0}
-            onReveal={revealObservation}
-          />
-        ))}
+      <div className="inspection-desk-row">
+        <div className="inspection-desk-stage">
+          <svg className="obs-lines" viewBox="0 0 100 100" preserveAspectRatio="none">
+            {observations.map((obs, i) => {
+              const angleDeg = (360 / count) * i - 90
+              const rad = (angleDeg * Math.PI) / 180
+              const x2 = 50 + 40 * Math.cos(rad)
+              const y2 = 50 + 36 * Math.sin(rad)
+              return <line key={obs.id} x1="50" y1="50" x2={x2} y2={y2} />
+            })}
+          </svg>
+          {item.image && !failed ? (
+            <img
+              className="inspection-desk-item-img"
+              src={assetUrl(`assets/items/${item.image}.png`)}
+              alt={item.name}
+              onError={() => setFailed(true)}
+            />
+          ) : (
+            <div className="inspection-desk-item-placeholder" aria-hidden="true" />
+          )}
+          {observations.map((obs, i) => (
+            <ObservationNode
+              key={obs.id}
+              obs={obs}
+              angleDeg={(360 / count) * i - 90}
+              radiusX={43}
+              radiusY={39}
+              revealed={revealedObservations.includes(obs.id)}
+              disabled={remaining <= 0}
+              onReveal={revealObservation}
+            />
+          ))}
+        </div>
+        {hasDetector && <SoulDetectorTool item={item} soulCheckText={soulCheckText} />}
       </div>
     </div>
   )

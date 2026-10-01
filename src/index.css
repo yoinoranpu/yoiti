@@ -524,16 +524,19 @@ button {
   padding: 0.9rem 1rem;
   display: flex;
   flex-direction: column;
-  gap: 0.8rem;
-  max-height: 45%;
+  gap: 0.6rem;
+  height: 50%;
   overflow-y: auto;
 }
 
 .dialogue-log {
   display: flex;
   flex-direction: column;
-  gap: 0.4rem;
+  gap: 0.3rem;
   font-size: 0.85rem;
+  max-height: 64px;
+  overflow-y: auto;
+  flex-shrink: 0;
 }
 
 .line-narration {
@@ -554,8 +557,10 @@ button {
 
 .actions {
   display: flex;
-  gap: 1.2rem;
-  flex-wrap: wrap;
+  flex-direction: column;
+  gap: 0.7rem;
+  flex: 1;
+  min-height: 0;
 }
 
 .action-group {
@@ -615,6 +620,8 @@ button {
   flex-direction: column;
   gap: 0.5rem;
   width: 100%;
+  flex: 1;
+  min-height: 0;
 }
 
 .obs-budget {
@@ -623,10 +630,17 @@ button {
   color: var(--color-text-dim);
 }
 
+.inspection-desk-row {
+  display: flex;
+  gap: 0.8rem;
+  flex: 1;
+  min-height: 0;
+}
+
 .inspection-desk-stage {
   position: relative;
-  width: 100%;
-  height: 190px;
+  flex: 1;
+  min-width: 0;
   background: radial-gradient(circle at 50% 50%, var(--color-panel-alt), var(--color-bg) 80%);
   border: 1px solid var(--color-border);
   border-radius: 4px;
@@ -651,11 +665,11 @@ button {
   left: 50%;
   top: 50%;
   transform: translate(-50%, -50%);
-  width: 84px;
-  height: 84px;
+  width: 150px;
+  height: 150px;
   object-fit: contain;
   image-rendering: pixelated;
-  filter: drop-shadow(0 0 6px rgba(0, 0, 0, 0.6));
+  filter: drop-shadow(0 0 8px rgba(0, 0, 0, 0.6));
 }
 
 .inspection-desk-item-placeholder {
@@ -663,8 +677,8 @@ button {
   left: 50%;
   top: 50%;
   transform: translate(-50%, -50%);
-  width: 84px;
-  height: 84px;
+  width: 150px;
+  height: 150px;
   border-radius: 4px;
   background: var(--color-panel-alt);
   border: 1px solid var(--color-border);
@@ -676,23 +690,23 @@ button {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 0.1rem;
-  padding: 0.25rem 0.5rem;
+  gap: 0.15rem;
+  padding: 0.4rem 0.7rem;
   border-radius: 3px;
   border: 1px solid var(--color-border);
   background: rgba(14, 11, 18, 0.85);
   cursor: pointer;
-  max-width: 110px;
+  max-width: 150px;
   text-align: center;
 }
 
 .obs-node-label {
-  font-size: 0.7rem;
+  font-size: 0.82rem;
   color: var(--color-accent);
 }
 
 .obs-node-value {
-  font-size: 0.68rem;
+  font-size: 0.76rem;
   color: var(--color-text-dim);
   white-space: normal;
 }
@@ -719,6 +733,12 @@ button {
    「判断する」は木札/金属プレートのような、夜市の店に実在しそうな質感にする。 */
 
 .decision-plate {
+  display: flex;
+  flex-direction: row;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+  flex-shrink: 0;
   background: linear-gradient(180deg, #3a2a1e, #241a12);
   border: 1px solid #4a3626;
   border-radius: 3px;
@@ -726,9 +746,14 @@ button {
 }
 
 .decision-plate .action-group-label {
+  width: 100%;
   color: var(--color-accent);
   font-size: 0.78rem;
-  margin-bottom: 0.15rem;
+  margin: 0 0 0.1rem;
+}
+
+.decision-plate .btn-trade {
+  flex: 0 0 auto;
 }
 
 /* --- talk menu ---
@@ -820,15 +845,23 @@ button {
 
 .soul-tool-wrap {
   display: flex;
+  flex-direction: column;
   align-items: center;
-  gap: 0.6rem;
-  min-width: 220px;
+  justify-content: center;
+  gap: 0.9rem;
+  width: 170px;
+  flex-shrink: 0;
+  background: radial-gradient(circle at 50% 35%, var(--color-panel-alt), var(--color-bg) 85%);
+  border: 1px solid var(--color-border);
+  border-radius: 4px;
+  padding: 1rem 0.8rem;
+  text-align: center;
 }
 
 .soul-target {
   position: relative;
-  width: 48px;
-  height: 48px;
+  width: 72px;
+  height: 72px;
   flex-shrink: 0;
   border-radius: 4px;
   border: 1px solid var(--color-border);
@@ -840,15 +873,15 @@ button {
 }
 
 .soul-target-img {
-  width: 40px;
-  height: 40px;
+  width: 58px;
+  height: 58px;
   object-fit: contain;
   image-rendering: pixelated;
 }
 
 .soul-target-placeholder {
-  width: 32px;
-  height: 32px;
+  width: 46px;
+  height: 46px;
   border-radius: 3px;
   background: var(--color-panel);
 }
@@ -875,10 +908,10 @@ button {
 }
 
 .soul-tool-btn {
-  width: 44px;
-  height: 44px;
+  width: 60px;
+  height: 60px;
   flex-shrink: 0;
-  padding: 6px;
+  padding: 10px;
   border-radius: 50%;
   border: 1px solid var(--color-soul);
   background: rgba(20, 16, 24, 0.85);
@@ -907,8 +940,8 @@ button {
 
 .soul-tool-clone {
   position: fixed;
-  width: 32px;
-  height: 32px;
+  width: 44px;
+  height: 44px;
   transform: translate(-50%, -50%);
   image-rendering: pixelated;
   pointer-events: none;
@@ -928,19 +961,20 @@ button {
 
 .shelf-display {
   position: absolute;
-  right: 14px;
-  top: 34%;
+  right: 18px;
+  top: 50%;
+  transform: translateY(-50%);
   z-index: 2;
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 10px;
 }
 
 .shelf-slot {
   position: relative;
-  width: 34px;
-  height: 34px;
-  border-radius: 3px;
+  width: 56px;
+  height: 56px;
+  border-radius: 4px;
   border: 1px solid var(--color-border);
   background: rgba(14, 11, 18, 0.6);
   display: flex;
@@ -949,16 +983,16 @@ button {
 }
 
 .shelf-slot-img {
-  width: 26px;
-  height: 26px;
+  width: 44px;
+  height: 44px;
   object-fit: contain;
   image-rendering: pixelated;
 }
 
 .shelf-slot-placeholder {
-  width: 20px;
-  height: 20px;
-  border-radius: 2px;
+  width: 32px;
+  height: 32px;
+  border-radius: 3px;
   background: var(--color-panel-alt);
 }
 
