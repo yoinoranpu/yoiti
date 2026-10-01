@@ -39,8 +39,9 @@ function SellDialoguePanel({ item }) {
   const tryHaggleUp = useGameStore((s) => s.tryHaggleUp)
   const skipSell = useGameStore((s) => s.skipSell)
 
+  const compact = !engaged || appraisalResolution
   return (
-    <div className="dialogue">
+    <div className={"dialogue" + (compact ? " dialogue-compact" : "")}>
       <DialogueLog />
 
       {appraisalResolution ? (

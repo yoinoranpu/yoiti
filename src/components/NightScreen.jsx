@@ -46,8 +46,11 @@ function DialoguePanel({ customer }) {
   const refuse = useGameStore((s) => s.refuse)
   const report = useGameStore((s) => s.report)
 
+  // 鑑定机を出していない場面(客が声をかけてきた直後・判断の結果表示)では
+  // 下半分を占有せず、シーンに場所を譲る。
+  const compact = !engaged || lastResolution
   return (
-    <div className="dialogue">
+    <div className={"dialogue" + (compact ? " dialogue-compact" : "")}>
       <DialogueLog />
 
       {lastResolution ? (

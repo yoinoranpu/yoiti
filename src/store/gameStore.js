@@ -4,7 +4,7 @@ import { DAYS, START_GOLD } from "../data/days"
 const currentDayConfig = (state) => DAYS[state.day - 1]
 
 let inventoryUid = 0
-const itemToInventory = (item, revealedCount = 0) => ({
+const itemToInventory = (item, revealedCount = 0, paidPrice = 0) => ({
   invId: `inv-${inventoryUid++}`,
   name: item.name,
   image: item.image,
@@ -15,6 +15,7 @@ const itemToInventory = (item, revealedCount = 0) => ({
   hiddenObservations: item.hiddenObservations,
   observationBudget: item.observationBudget,
   observedCount: revealedCount, // 購入時点までに鑑定机で開示できていた件数(棚のツールチップ表示用)
+  paidPrice, // 実際に支払った額(棚で「いくらで買った品か」を確認できるように)
   buyer: item.buyer,
 })
 
@@ -196,7 +197,7 @@ export const useGameStore = create((set, get) => ({
     if (customer.guilty) {
       set((state) => ({
         gold: state.gold - customer.item.lowballPrice,
-        inventory: [...state.inventory, itemToInventory(customer.item, state.revealedObservations.length)],
+        inventory: [...state.inventory, itemToInventory(customer.item, state.revealedObservations.length, customer.item.lowballPrice)],
         dialogueLog: [...state.dialogueLog, { speaker: customer.name, text: customer.negotiation.accept }],
         lastResolution: { goldDelta: -customer.item.lowballPrice },
         screen: "resolved",
@@ -219,7 +220,7 @@ export const useGameStore = create((set, get) => ({
     const customer = get().currentCustomer()
     set((state) => ({
       gold: state.gold - customer.item.askPrice,
-      inventory: [...state.inventory, itemToInventory(customer.item, state.revealedObservations.length)],
+      inventory: [...state.inventory, itemToInventory(customer.item, state.revealedObservations.length, customer.item.askPrice)],
       dialogueLog: [...state.dialogueLog, { speaker: "narration", text: customer.resolution.buyFull.text }],
       lastResolution: { goldDelta: -customer.item.askPrice },
       screen: "resolved",

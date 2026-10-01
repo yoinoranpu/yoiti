@@ -322,14 +322,9 @@ export function ScenePanel({
   )
 }
 
-// 商品の各部位から線を伸ばしたノードで観察結果を個別に開示する鑑定机。
-// ノードの位置はデータにx/yを持たせず、商品を中心に等間隔の角度で自動配置する。
-// 未鑑定は古い紙札風の見た目で「???」、鑑定した瞬間にインクが乗るような
-// 小さな演出(obs-node-revealedのCSSアニメーション)を入れる。
-function ObservationNode({ obs, angleDeg, radiusX, radiusY, revealed, disabled, onReveal }) {
-  const rad = (angleDeg * Math.PI) / 180
-  const left = 50 + radiusX * Math.cos(rad)
-  const top = 50 + radiusY * Math.sin(rad)
+// 商品の各部位から線を伸ばした鑑定札。未鑑定は古い紙札風の「???」、
+// 鑑定した瞬間にインクが乗るような小さな演出(obs-node-revealed)を入れる。
+function ObservationNode({ obs, left, top, revealed, disabled, onReveal }) {
   return (
     <button
       className={"obs-node" + (revealed ? " obs-node-revealed" : " obs-node-hidden")}
@@ -338,9 +333,43 @@ function ObservationNode({ obs, angleDeg, radiusX, radiusY, revealed, disabled, 
       onClick={() => onReveal(obs.id)}
     >
       <span className="obs-node-label">{obs.label}</span>
-      <span className="obs-node-value">{revealed ? obs.text : "???"}</span>
+      {revealed ? (
+        <span className="obs-node-value">{obs.text}</span>
+      ) : (
+        <span className="obs-node-mark">？</span>
+      )}
     </button>
   )
+}
+
+// 鑑定札は商品の左右2列に振り分ける。机が横長なので、放射状に並べるより
+// 札が切れにくく、商品のどの部位から線が伸びているかも追いやすい。
+// 振り分けは部位の位置そのもの(左寄りの部位は左の列)に従い、列の中でも
+// 上下の順に並べる — 線が交差しにくくなり、図として読めるようになる。
+const layoutObservations = (observations, itemSpanX) => {
+  const entries = observations.map((obs) => ({
+    obs,
+    // 部位の位置(商品ローカルの0-100%)を机全体の座標に変換する。
+    anchorX: 50 + ((obs.x ?? 50) - 50) * itemSpanX,
+    anchorY: 50 + ((obs.y ?? 50) - 50) * 0.66,
+    partX: obs.x ?? 50,
+    partY: obs.y ?? 50,
+  }))
+
+  const byPartX = [...entries].sort((a, b) => a.partX - b.partX)
+  const leftIds = new Set(byPartX.slice(0, Math.ceil(entries.length / 2)).map((e) => e.obs.id))
+  const columns = { left: [], right: [] }
+  entries.forEach((e) => columns[leftIds.has(e.obs.id) ? "left" : "right"].push(e))
+
+  return ["left", "right"].flatMap((side) => {
+    const column = columns[side].sort((a, b) => a.partY - b.partY)
+    const step = column.length > 1 ? 76 / (column.length - 1) : 0
+    return column.map((e, i) => ({
+      ...e,
+      left: side === "left" ? 14 : 86,
+      top: column.length > 1 ? 12 + step * i : 50,
+    }))
+  })
 }
 
 // 「今回確認できる情報」を文章だけでなく、虫眼鏡マーカーの列で視覚化する。
@@ -375,14 +404,14 @@ export function InspectionDesk({ item, hasDetector, soulCheckText }) {
   const used = revealedObservations.length
   const remaining = Math.max(0, budget - used)
   const total = observations.length
-  const count = Math.max(observations.length, 1)
+  const placed = layoutObservations(observations, 0.22)
 
   return (
     <div className="inspection-desk">
       <div className="obs-budget">
         <p className="desk-phase-label">鑑定: 気になる部分を調べる</p>
         <span className="obs-budget-text">
-          鑑定可能な情報: {total} / 残り {remaining}
+          調べられる箇所 {total} / 残り {remaining}
         </span>
         <ObservationBudgetPips budget={budget} used={used} />
       </div>
@@ -392,23 +421,16 @@ export function InspectionDesk({ item, hasDetector, soulCheckText }) {
       >
         <div className="inspection-desk-stage">
           <svg className="obs-lines" viewBox="0 0 100 100" preserveAspectRatio="none">
-            {observations.map((obs, i) => {
-              const angleDeg = (360 / count) * i - 90
-              const rad = (angleDeg * Math.PI) / 180
-              const x2 = 50 + 40 * Math.cos(rad)
-              const y2 = 50 + 36 * Math.sin(rad)
-              const revealed = revealedObservations.includes(obs.id)
-              return (
-                <line
-                  key={obs.id}
-                  className={revealed ? "obs-line-revealed" : ""}
-                  x1="50"
-                  y1="50"
-                  x2={x2}
-                  y2={y2}
-                />
-              )
-            })}
+            {placed.map(({ obs, left, top, anchorX, anchorY }) => (
+              <line
+                key={obs.id}
+                className={revealedObservations.includes(obs.id) ? "obs-line-revealed" : ""}
+                x1={anchorX}
+                y1={anchorY}
+                x2={left}
+                y2={top}
+              />
+            ))}
           </svg>
           <div ref={itemDropRef} className="inspection-desk-item-dropzone">
             {item.image && !failed ? (
@@ -422,21 +444,34 @@ export function InspectionDesk({ item, hasDetector, soulCheckText }) {
               <div className="inspection-desk-item-placeholder" aria-hidden="true" />
             )}
           </div>
-          {observations.map((obs, i) => (
+          {placed.map(({ obs, anchorX, anchorY }) => (
+            <span
+              key={`anchor-${obs.id}`}
+              className={
+                "obs-anchor" + (revealedObservations.includes(obs.id) ? " obs-anchor-revealed" : "")
+              }
+              style={{ left: `${anchorX}%`, top: `${anchorY}%` }}
+              aria-hidden="true"
+            />
+          ))}
+          {placed.map(({ obs, left, top }) => (
             <ObservationNode
               key={obs.id}
               obs={obs}
-              angleDeg={(360 / count) * i - 90}
-              radiusX={43}
-              radiusY={39}
+              left={left}
+              top={top}
               revealed={revealedObservations.includes(obs.id)}
               disabled={remaining <= 0}
               onReveal={revealObservation}
             />
           ))}
         </div>
-        {hasDetector && (
+        {hasDetector ? (
           <SoulDetectorTool dropZoneRef={itemDropRef} soulCheckText={soulCheckText} />
+        ) : (
+          // 判別機が無い場面でも机の割り付け(左=羊皮紙/右=台座)は変えない。
+          // 商品が羊皮紙の中央から外れてしまうのを防ぐため、台座側は空けておく。
+          <div className="soul-tool-wrap" aria-hidden="true" />
         )}
       </div>
     </div>
@@ -451,6 +486,9 @@ export function SoulDetectorTool({ dropZoneRef, soulCheckText }) {
   const soulChecked = useGameStore((s) => s.soulChecked)
   const checkSoul = useGameStore((s) => s.checkSoul)
   const startRef = useRef({ x: 0, y: 0 })
+  // ドラッグ中かどうかは ref でも持つ。pointerdown→pointerup が同じタスク内で
+  // 連続して届いた場合(自動操作など)に、state の反映待ちで取りこぼさないため。
+  const draggingRef = useRef(false)
   const [dragging, setDragging] = useState(false)
   const [clonePos, setClonePos] = useState({ x: 0, y: 0 })
 
@@ -468,12 +506,13 @@ export function SoulDetectorTool({ dropZoneRef, soulCheckText }) {
     e.currentTarget.setPointerCapture(e.pointerId)
     startRef.current = { x: e.clientX, y: e.clientY }
     setClonePos({ x: e.clientX, y: e.clientY })
+    draggingRef.current = true
     setDragging(true)
   }
   // ドラッグ中、商品への距離に応じて「近づける→弱く光る→かざす」の段階を
   // つける。離れている間はclassを外し、近づくほど強い紫の光に切り替わる。
   const onPointerMove = (e) => {
-    if (!dragging) return
+    if (!draggingRef.current) return
     setClonePos({ x: e.clientX, y: e.clientY })
     const rect = dropZoneRef?.current?.getBoundingClientRect()
     if (!rect) return
@@ -487,7 +526,8 @@ export function SoulDetectorTool({ dropZoneRef, soulCheckText }) {
     dropZoneRef.current.classList.toggle("item-drop-near", near && !over)
   }
   const onPointerUp = (e) => {
-    if (!dragging) return
+    if (!draggingRef.current) return
+    draggingRef.current = false
     setDragging(false)
     dropZoneRef?.current?.classList.remove("item-drop-active", "item-drop-near")
     const moved = Math.hypot(e.clientX - startRef.current.x, e.clientY - startRef.current.y)
@@ -551,6 +591,7 @@ function ShelfSlot({ item }) {
       {hover && (
         <div className="shelf-tooltip">
           <p className="shelf-tooltip-name">{item.name}</p>
+          <p className="shelf-tooltip-text">買取価格: {item.paidPrice ?? 0}G</p>
           <p className="shelf-tooltip-text">推定価値: {item.trueValue}G</p>
           {item.hiddenObservations && (
             <p className="shelf-tooltip-text">

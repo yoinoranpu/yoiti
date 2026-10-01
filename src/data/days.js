@@ -5,6 +5,7 @@
 // story_outline.mdの表よりやや控えめにしてある(調整はプレイして詰める)。
 
 import { CUSTOMERS as DAY1_CUSTOMERS, REFERENCE, START_GOLD } from "./night1"
+import { expandDayObservations } from "./observations"
 
 let uid = 0
 const nextId = (prefix) => `${prefix}-${uid++}`
@@ -763,12 +764,15 @@ const DAY7_CUSTOMERS = [
 
 export { REFERENCE, START_GOLD }
 
+// allowedChecks: 1つの商品につき、その日に調べられる回数。調査ポイント自体は
+// どの品も6〜8個あるので、日が進むほど「どこを見るか」の選択が重くなる。
+// 1日目は操作を覚える日なので実質無制限にしてある。
 export const DAYS = [
-  { day: 1, quota: 60, hasDetector: true, forcedEvent: null, customers: DAY1_CUSTOMERS },
-  { day: 2, quota: 75, hasDetector: true, forcedEvent: null, customers: DAY2_CUSTOMERS },
-  { day: 3, quota: 80, hasDetector: true, forcedEvent: "robbery", customers: DAY3_CUSTOMERS },
-  { day: 4, quota: 70, hasDetector: false, forcedEvent: null, customers: DAY4_CUSTOMERS },
-  { day: 5, quota: 90, hasDetector: false, forcedEvent: null, customers: DAY5_CUSTOMERS },
-  { day: 6, quota: 110, hasDetector: false, forcedEvent: null, customers: DAY6_CUSTOMERS },
-  { day: 7, quota: 130, hasDetector: false, forcedEvent: null, customers: DAY7_CUSTOMERS },
+  { day: 1, quota: 60, hasDetector: true, forcedEvent: null, customers: expandDayObservations(DAY1_CUSTOMERS, 99) },
+  { day: 2, quota: 75, hasDetector: true, forcedEvent: null, customers: expandDayObservations(DAY2_CUSTOMERS, 5) },
+  { day: 3, quota: 80, hasDetector: true, forcedEvent: "robbery", customers: expandDayObservations(DAY3_CUSTOMERS, 5) },
+  { day: 4, quota: 70, hasDetector: false, forcedEvent: null, customers: expandDayObservations(DAY4_CUSTOMERS, 4) },
+  { day: 5, quota: 90, hasDetector: false, forcedEvent: null, customers: expandDayObservations(DAY5_CUSTOMERS, 4) },
+  { day: 6, quota: 110, hasDetector: false, forcedEvent: null, customers: expandDayObservations(DAY6_CUSTOMERS, 4) },
+  { day: 7, quota: 130, hasDetector: false, forcedEvent: null, customers: expandDayObservations(DAY7_CUSTOMERS, 4) },
 ]
