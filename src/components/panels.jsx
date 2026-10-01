@@ -362,7 +362,10 @@ export function InspectionDesk({ item, hasDetector, soulCheckText }) {
       <p className="obs-budget">
         鑑定可能な情報: {total} / 今回確認できる情報: {remaining}
       </p>
-      <div className="inspection-desk-row">
+      <div
+        className="inspection-desk-row"
+        style={{ backgroundImage: `url(${assetUrl("assets/backgrounds/inspection-desk-back.png")})` }}
+      >
         <div className="inspection-desk-stage">
           <svg className="obs-lines" viewBox="0 0 100 100" preserveAspectRatio="none">
             {observations.map((obs, i) => {

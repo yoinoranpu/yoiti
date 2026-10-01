@@ -2,6 +2,20 @@
 
 ## 進行中
 
+- **鑑定机の背景イラストを導入**(2026-10-01)。「枠が煩わしい」への本格対応
+  として、`memory/illustration_requests.md`に追記したプロンプトをユーザーが
+  Geminiで生成し、`public/assets/backgrounds/inspection-desk-back.png`
+  として取り込んだ(jfif→PNG変換のみ、切り抜き不要の全面背景なので
+  グリーンバック処理は無し)。木製の机+広げた羊皮紙の地図(鑑定ノード用に
+  中央が空いている)+右側に石の台座(魂判別機のドロップ先)という構図で、
+  プロンプト通りの仕上がり。`InspectionDesk`(`src/components/panels.jsx`)
+  の`.inspection-desk-row`にassetUrl経由でbackground-imageとして設定し、
+  CSSのグラデーション塗りを置き換えた(GitHub Pagesのサブパス配信でも
+  正しく解決されるよう、他の背景と同様に`assetUrl()`を使用)。
+  `.soul-tool-wrap`の幅を固定170px→flex-basis 30%に変更し、イラストの
+  石の台座部分とドロップ先のボタン位置が重なるよう調整。night/appraisal
+  両画面・鑑定机クリック・魂判別機(クリック)・購入/売却までブラウザで
+  再確認し、問題なし。
 - **接客画面UI: 客ターン新設+暗転バグ修正+細部調整**(2026-10-01)。
   参考イメージ(ChatGPT生成モックアップ)とスクリーンショットを見比べる
   サイクルを3回繰り返しながら、以下を実装。

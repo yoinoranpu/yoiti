@@ -634,7 +634,11 @@ button {
   gap: 0;
   flex: 1;
   min-height: 0;
-  background: radial-gradient(circle at 40% 45%, var(--color-panel-alt), var(--color-bg) 85%);
+  background-color: var(--color-bg);
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  image-rendering: pixelated;
   border-radius: 4px;
   overflow: hidden;
 }
@@ -893,9 +897,7 @@ button {
   align-items: center;
   justify-content: center;
   gap: 0.9rem;
-  width: 170px;
-  flex-shrink: 0;
-  border-left: 1px solid var(--color-border);
+  flex: 0 0 30%;
   padding: 1rem 0.8rem;
   text-align: center;
 }
