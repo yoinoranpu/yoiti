@@ -212,22 +212,6 @@ function TalkMenu({ topics, actorName, actorImage, onClose }) {
   )
 }
 
-// カウンターに乗る商品アイコン。image が無い・読み込み失敗時は簡素なプレースホルダーに。
-function ItemFigure({ name, image }) {
-  const [failed, setFailed] = useState(false)
-  if (image && !failed) {
-    return (
-      <img
-        className="counter-item-img"
-        src={assetUrl(`assets/items/${image}.png`)}
-        alt={name}
-        onError={() => setFailed(true)}
-      />
-    )
-  }
-  return <div className="counter-item-placeholder" aria-hidden="true" />
-}
-
 function SpeechBubble() {
   const dialogueLog = useGameStore((s) => s.dialogueLog)
   const last = dialogueLog[dialogueLog.length - 1]
@@ -239,33 +223,14 @@ function SpeechBubble() {
   )
 }
 
-// シーンは奥から手前へ: 背景 → キャラ(下半身がカウンターの裏に隠れる) →
-// カウンター → カウンターに乗る商品、の順で重ねる。キャラが宙に浮かず、
-// その場に立っているように見せるための構成。
-export function ScenePanel({
-  actorName,
-  actorImage,
-  topics,
-  engaged,
-  onEngage,
-  showItemCard,
-  itemName,
-  itemImage,
-  itemDescription,
-  priceLabel,
-  price,
-  illustrationClues,
-  backdropImage,
-  counterImage,
-}) {
+// シーンは奥から手前へ: 背景 → キャラ、の順で重ねる。商品の情報は鑑定机に
+// 一本化したので、カウンター越しに商品カードを浮かべる表現は廃止した。
+export function ScenePanel({ actorName, actorImage, topics, engaged, onEngage, illustrationClues, backdropImage }) {
   const [talkOpen, setTalkOpen] = useState(false)
   useEffect(() => setTalkOpen(false), [actorName])
 
   const backdropStyle = backdropImage
     ? { backgroundImage: `url(${assetUrl(`assets/backgrounds/${backdropImage}.png`)})` }
-    : undefined
-  const counterStyle = counterImage
-    ? { backgroundImage: `url(${assetUrl(`assets/backgrounds/${counterImage}.png`)})` }
     : undefined
 
   const handleActorClick = () => {
@@ -286,7 +251,9 @@ export function ScenePanel({
         <CharacterFigure key={actorImage || actorName} actorName={actorName} image={actorImage} />
         <IllustrationHotspots illustrationClues={illustrationClues} />
         {engaged && topics && !talkOpen && (
-          <img className="talk-hint" src={assetUrl("assets/icons/icon-talk.png")} alt="" />
+          <div className="talk-hint-bubble" aria-hidden="true">
+            <img className="talk-hint-icon" src={assetUrl("assets/icons/icon-talk.png")} alt="" />
+          </div>
         )}
       </div>
       {talkOpen && topics && (
@@ -303,20 +270,6 @@ export function ScenePanel({
         <p className="scene-name">{actorName}</p>
         <SpeechBubble />
         {!engaged && <p className="engage-hint">客をクリックして話を聞こう</p>}
-      </div>
-      <div className="counter" style={counterStyle}>
-        {showItemCard && engaged && (
-          <div className="counter-item">
-            <ItemFigure name={itemName} image={itemImage} />
-            <div className="counter-item-info">
-              <p className="counter-item-name">{itemName}</p>
-              {itemDescription && <p className="counter-item-desc">{itemDescription}</p>}
-              <p className="counter-item-price">
-                {priceLabel}: {price}G
-              </p>
-            </div>
-          </div>
-        )}
       </div>
     </div>
   )
@@ -382,22 +335,6 @@ const layoutObservations = (observations, itemSpanX, itemSpanY) => {
   })
 }
 
-// 「今回確認できる情報」を文章だけでなく、虫眼鏡マーカーの列で視覚化する。
-// 使った分だけ暗く(使用済みに)なり、残り何回調べられるか一目で分かる。
-function ObservationBudgetPips({ budget, used }) {
-  return (
-    <div className="obs-budget-pips">
-      {Array.from({ length: budget }).map((_, i) => (
-        <img
-          key={i}
-          className={"obs-pip" + (i < used ? " obs-pip-used" : "")}
-          src={assetUrl("assets/icons/icon-inspect.png")}
-          alt=""
-        />
-      ))}
-    </div>
-  )
-}
 
 // 画面下半分そのものを鑑定机にする。商品(左)・そこから伸びる観察ノード・
 // 魂判別機(右、hasDetectorの日だけ)を1つの机としてまとめて常時表示する。
@@ -428,23 +365,21 @@ export function InspectionDesk({ item, hasDetector, soulCheckText }) {
   const total = observations.length
   // 商品イラストが机の中心でどれくらいの幅/高さを占めるか(机全体に対する比率)。
   // ここに合わせて部位の位置を変換するので、線が本当に商品の上のその場所から
-  // 伸びているように見える(商品を拡大したら、ここも合わせて大きくする)。
-  const placed = layoutObservations(observations, 0.42, 0.42)
+  // 伸びているように見える(商品を拡大したので、ここも合わせて大きくした)。
+  const placed = layoutObservations(observations, 0.6, 0.6)
 
   return (
-    <div className="inspection-desk">
-      <div className="obs-budget">
-        <p className="desk-phase-label">鑑定: 気になる部分を調べる</p>
-        <span className="obs-budget-text">🔎 {remaining}/{total}</span>
-        <ObservationBudgetPips budget={budget} used={used} />
-      </div>
-      <div
-        className="inspection-desk-row"
-        style={{ backgroundImage: `url(${assetUrl("assets/backgrounds/inspection-desk-back.png")})` }}
-      >
-        <div className="inspection-desk-stage">
-          <div className="inspection-desk-stage-dim" aria-hidden="true" />
-          <svg className="obs-lines" viewBox="0 0 100 100" preserveAspectRatio="none">
+    <div
+      className="inspection-desk-row"
+      style={{ backgroundImage: `url(${assetUrl("assets/backgrounds/inspection-desk-back.png")})` }}
+    >
+      <div className="inspection-desk-stage">
+        <div className="inspection-desk-stage-dim" aria-hidden="true" />
+        {/* 残り回数は独立した帯にせず、机の隅に小さな札として置く。 */}
+        <span className="obs-budget-badge">
+          🔎 {remaining}/{total}
+        </span>
+        <svg className="obs-lines" viewBox="0 0 100 100" preserveAspectRatio="none">
             {placed.map(({ obs, left, top, anchorX, anchorY }) => (
               <line
                 key={obs.id}
@@ -509,7 +444,6 @@ export function InspectionDesk({ item, hasDetector, soulCheckText }) {
           <div className="soul-tool-wrap" aria-hidden="true" />
         )}
       </div>
-    </div>
   )
 }
 
@@ -675,11 +609,14 @@ export function ShelfDisplay() {
   )
 }
 
+// 直近の1行はキャラの吹き出し(SpeechBubble)に出ているので、ここでは
+// 重複させずそれより前の履歴だけを並べる。
 export function DialogueLog() {
   const dialogueLog = useGameStore((s) => s.dialogueLog)
+  const history = dialogueLog.slice(0, -1)
   return (
     <div className="dialogue-log">
-      {dialogueLog.map((line, i) => (
+      {history.map((line, i) => (
         <p key={i} className={line.speaker === "narration" ? "line-narration" : "line-speech"}>
           {line.speaker !== "narration" && <span className="speaker">{line.speaker}: </span>}
           {line.text}
@@ -699,11 +636,14 @@ export function DialogueLog() {
 export function DecisionMemo({ item, revealedObservations, soulLine }) {
   const observations = item?.hiddenObservations || []
   const revealed = observations.filter((o) => revealedObservations.includes(o.id))
-  if (revealed.length === 0 && !soulLine) return null
+  // 何も鑑定していない間も箱自体は出しておく(常に同じ高さ)。鑑定するたびに
+  // 中身が増えて判断エリア全体が伸び縮みする、という「机が狭くなる」バグの
+  // 原因だったため、最初から場所を確保しておく。
   return (
     <div className="decision-memo">
       <p className="decision-memo-title">今回の鑑定</p>
       <ul className="decision-memo-list">
+        {revealed.length === 0 && !soulLine && <li className="decision-memo-empty">まだ何も分かっていない</li>}
         {revealed.map((o) => (
           <li key={o.id}>
             <span className="decision-memo-label">{o.label}</span>

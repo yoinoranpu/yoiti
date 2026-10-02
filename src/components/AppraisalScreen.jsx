@@ -40,20 +40,21 @@ function SellDialoguePanel({ item }) {
   const skipSell = useGameStore((s) => s.skipSell)
   const revealedObservations = useGameStore((s) => s.revealedObservations)
 
-  const compact = !engaged || appraisalResolution
   return (
-    <div className={"dialogue" + (compact ? " dialogue-compact" : "")}>
+    <div className="dialogue">
       <DialogueLog />
 
       {appraisalResolution ? (
-        <ResultPanel resolution={appraisalResolution} onContinue={continueAppraisal} />
+        <div className="dialogue-center">
+          <ResultPanel resolution={appraisalResolution} onContinue={continueAppraisal} />
+        </div>
       ) : !engaged ? (
-        <p className="engage-hint">買い手をクリックして話を聞こう。</p>
+        <div className="dialogue-center">
+          <p className="engage-hint">買い手をクリックして話を聞こう。</p>
+        </div>
       ) : (
         <div className="actions">
           <InspectionDesk item={item} />
-
-          <div className="desk-divider" aria-hidden="true" />
 
           <div className="action-group decision-plate">
             <p className="action-group-label">十分調べた。さて、どうする？</p>
@@ -102,12 +103,6 @@ export default function AppraisalScreen() {
             engaged={engaged}
             onEngage={engageCustomer}
             backdropImage="appraisal-room-back"
-            counterImage="appraisal-desk-front"
-            showItemCard
-            itemName={item.name}
-            itemImage={item.image}
-            priceLabel="言い値"
-            price={item.trueValue}
             illustrationClues={item.buyer.illustrationClues}
           />
           <InfoOverlay reference={REFERENCE} />

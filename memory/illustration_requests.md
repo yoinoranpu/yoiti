@@ -57,6 +57,8 @@ composited in front of it later.
 ```
 
 ### `shop-counter-front.png` — 接客シーンの手前に重ねるカウンター
+**(2026-10-02: UI改修でカウンター越しの商品カード表現を廃止したため未使用に。
+ファイルも削除済み。経緯の記録として内容はそのまま残す。)**
 背景は切り抜き用グリーンバック(`#00ff00`)。カウンターの天板から上は透過にする。
 ```
 Pixel art, no anti-aliasing, crisp pixel edges. Wide horizontal foreground
@@ -117,6 +119,7 @@ character and a desk can be composited in front of it later.
 ```
 
 ### `appraisal-desk-front.png` — 査定シーンの手前に重ねる帳場机
+**(2026-10-02: shop-counter-front.pngと同じ理由で未使用。ファイルも削除済み。)**
 背景は切り抜き用グリーンバック(`#00ff00`)。机の天板から上は透過にする。
 ```
 Pixel art, no anti-aliasing, crisp pixel edges. Wide horizontal foreground

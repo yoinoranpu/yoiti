@@ -48,22 +48,24 @@ function DialoguePanel({ customer }) {
   const revealedObservations = useGameStore((s) => s.revealedObservations)
   const soulChecked = useGameStore((s) => s.soulChecked)
 
-  // 鑑定机を出していない場面(客が声をかけてきた直後・判断の結果表示)では
-  // 下半分を占有せず、シーンに場所を譲る。
-  const compact = !engaged || lastResolution
+  // 鑑定机を出していない場面(客が声をかけてきた直後・判断の結果表示)でも
+  // パネル自体の高さは変えない(engaged切り替えのたびに画面が動いて
+  // 落ち着かないため)。その場面では中身を縦方向に中央寄せするだけにする。
   return (
-    <div className={"dialogue" + (compact ? " dialogue-compact" : "")}>
+    <div className="dialogue">
       <DialogueLog />
 
       {lastResolution ? (
-        <ResultPanel resolution={lastResolution} onContinue={continueToNext} />
+        <div className="dialogue-center">
+          <ResultPanel resolution={lastResolution} onContinue={continueToNext} />
+        </div>
       ) : !engaged ? (
-        <p className="engage-hint">客をクリックして話を聞こう。</p>
+        <div className="dialogue-center">
+          <p className="engage-hint">客をクリックして話を聞こう。</p>
+        </div>
       ) : (
         <div className="actions">
           <InspectionDesk item={customer.item} hasDetector={hasDetector} soulCheckText={customer.soulCheckText} />
-
-          <div className="desk-divider" aria-hidden="true" />
 
           <div className="action-group decision-plate">
             <p className="action-group-label">十分調べた。さて、どうする？</p>
@@ -109,13 +111,6 @@ export default function NightScreen({ reference }) {
           engaged={engaged}
           onEngage={engageCustomer}
           backdropImage="shop-room-back"
-          counterImage="shop-counter-front"
-          showItemCard
-          itemName={customer.item.name}
-          itemImage={customer.item.image}
-          itemDescription={customer.item.description}
-          priceLabel="言い値"
-          price={customer.item.askPrice}
           illustrationClues={customer.illustrationClues}
         />
         <ShelfDisplay />
