@@ -153,8 +153,8 @@ button {
 }
 
 .topbar-icon {
-  width: 18px;
-  height: 18px;
+  width: 24px;
+  height: 24px;
   image-rendering: pixelated;
 }
 
@@ -243,9 +243,9 @@ button {
 }
 
 .info-rail-btn {
-  width: 44px;
-  height: 44px;
-  padding: 8px;
+  width: 56px;
+  height: 56px;
+  padding: 10px;
   border: none;
   border-radius: 0;
   background: #241d2c;
@@ -700,8 +700,8 @@ button {
 }
 
 .obs-pip {
-  width: 24px;
-  height: 24px;
+  width: 30px;
+  height: 30px;
   image-rendering: pixelated;
   filter: drop-shadow(0 0 3px rgba(201, 162, 74, 0.6));
 }
@@ -1025,10 +1025,12 @@ button {
   }
 }
 
+/* シーン下部(カウンターと鑑定机の境目)に挟まるのではなく、店内背景の
+   空いている左上(棚のあたり)に貼り出す形にする。 */
 .talk-menu-anchor {
   position: absolute;
-  left: 6%;
-  bottom: 110px;
+  left: 4%;
+  top: 12%;
   z-index: 5;
   width: min(220px, 40%);
 }
@@ -1142,6 +1144,8 @@ button {
   width: 86px;
   height: 100px;
   flex-shrink: 0;
+  /* 背景イラストの石の台座が中央よりやや左にあるため、そこに重なるよう調整。 */
+  margin-left: -20px;
   padding: 0;
   border: none;
   border-radius: 0;
