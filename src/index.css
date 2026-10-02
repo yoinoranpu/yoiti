@@ -757,8 +757,8 @@ button {
    ホバー中はさらに明るくして「ここが押せる」を伝える。 */
 .obs-lines line.obs-line {
   stroke: #4a3a18;
-  stroke-width: 0.5;
-  opacity: 0.65;
+  stroke-width: 0.4;
+  opacity: 0.4;
   transition: stroke 0.2s ease, opacity 0.2s ease, stroke-width 0.2s ease;
 }
 
@@ -773,6 +773,22 @@ button {
   stroke: #ffe9b8;
   opacity: 1;
   stroke-width: 1.1;
+}
+
+/* 会話で聞いた話から「ここを調べる価値がありそう」と示す線。常時点滅させず、
+   破線にして気づける程度にとどめる(押し付けがましくしない)。 */
+.obs-lines line.obs-line-suggested {
+  stroke: var(--color-accent);
+  opacity: 0.85;
+  stroke-width: 0.7;
+  stroke-dasharray: 2 2;
+  animation: obs-suggest-dash 1.2s linear infinite;
+}
+
+@keyframes obs-suggest-dash {
+  to {
+    stroke-dashoffset: -8;
+  }
 }
 
 @keyframes obs-line-flash {
@@ -926,6 +942,24 @@ button {
     3px 5px 0 rgba(0, 0, 0, 0.5);
 }
 
+/* 会話から「調べる価値がありそう」と分かった札を、控えめに明滅させて誘導する。
+   答えを教えるのではなく、気づきのきっかけ程度にとどめる。 */
+.obs-node-suggested {
+  animation: obs-suggest-glow 1.4s ease-in-out infinite;
+}
+
+@keyframes obs-suggest-glow {
+  0%,
+  100% {
+    box-shadow: inset -2px -2px 0 rgba(0, 0, 0, 0.35), 0 0 0 2px rgba(201, 162, 74, 0.35),
+      3px 3px 0 rgba(0, 0, 0, 0.5);
+  }
+  50% {
+    box-shadow: inset -2px -2px 0 rgba(0, 0, 0, 0.35), 0 0 0 2px rgba(201, 162, 74, 0.9),
+      0 0 10px rgba(201, 162, 74, 0.5), 3px 3px 0 rgba(0, 0, 0, 0.5);
+  }
+}
+
 .obs-node-revealed {
   cursor: default;
   animation: obs-reveal-pop 0.4s ease-out;
@@ -973,6 +1007,47 @@ button {
   box-shadow: inset 2px 2px 0 rgba(122, 92, 62, 0.55), inset -2px -2px 0 rgba(0, 0, 0, 0.55),
     0 3px 0 rgba(0, 0, 0, 0.4);
   padding: 0.6rem 0.7rem;
+}
+
+/* 判断ボタンの右側の余白を「今回の鑑定」簡易メモで使う。大きな文章パネルに
+   せず、机で見た情報のラベルだけを羊皮紙の小さな紙片に並べる程度にする。 */
+.decision-memo {
+  margin-left: auto;
+  background: #c6b991;
+  color: #2c2410;
+  padding: 0.35rem 0.6rem;
+  max-width: 260px;
+  box-shadow: 2px 2px 0 rgba(0, 0, 0, 0.4);
+}
+
+.decision-memo-title {
+  margin: 0 0 0.15rem;
+  font-size: 0.68rem;
+  color: #6b5a3a;
+  font-weight: bold;
+}
+
+.decision-memo-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+}
+
+.decision-memo-list li {
+  font-size: 0.7rem;
+  line-height: 1.3;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.decision-memo-label {
+  color: #8a5a1f;
+  font-weight: bold;
+  margin-right: 0.3rem;
 }
 
 .decision-plate .action-group-label {
@@ -1203,13 +1278,15 @@ button {
   z-index: 998;
 }
 
+/* 近づくほど太く・明るくなる(--soul-beam-intensityは0〜1、JSから設定)。
+   遠いうちは細く頼りない光、かざすと強く反応する「実際に近づけている」感覚。 */
 .soul-beam line {
   stroke: var(--color-soul);
-  stroke-width: 2.5;
+  stroke-width: calc(1px + 2.5 * var(--soul-beam-intensity, 0.3) * 1px);
   stroke-linecap: round;
   stroke-dasharray: 5 6;
-  opacity: 0.75;
-  filter: drop-shadow(0 0 5px rgba(138, 95, 214, 0.9));
+  opacity: calc(0.35 + 0.55 * var(--soul-beam-intensity, 0.3));
+  filter: drop-shadow(0 0 calc(2px + 6px * var(--soul-beam-intensity, 0.3)) rgba(138, 95, 214, 0.9));
   animation: soul-beam-flow 0.4s linear infinite;
 }
 

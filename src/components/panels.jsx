@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react"
+import { useState, useEffect, useRef, useMemo } from "react"
 import { useGameStore } from "../store/gameStore"
 
 // GitHub Pagesなどサブパス配信(base: "/yoiti/")でも public/assets/ の画像が
@@ -326,10 +326,14 @@ export function ScenePanel({
 // 鑑定した瞬間にインクが乗るような小さな演出(obs-node-revealed)を入れる。
 // ホバー中は「ここがクリックできる」とすぐ分かるよう、対応する線を
 // 明るくし札を少し持ち上げる(onHoverはInspectionDesk側でクラス切り替え)。
-function ObservationNode({ obs, left, top, revealed, disabled, onReveal, onHoverChange }) {
+function ObservationNode({ obs, left, top, revealed, suggested, disabled, onReveal, onHoverChange }) {
   return (
     <button
-      className={"obs-node" + (revealed ? " obs-node-revealed" : " obs-node-hidden")}
+      className={
+        "obs-node" +
+        (revealed ? " obs-node-revealed" : " obs-node-hidden") +
+        (suggested ? " obs-node-suggested" : "")
+      }
       style={{ left: `${left}%`, top: `${top}%` }}
       disabled={revealed || disabled}
       onClick={() => onReveal(obs.id)}
@@ -401,6 +405,17 @@ function ObservationBudgetPips({ budget, used }) {
 export function InspectionDesk({ item, hasDetector, soulCheckText }) {
   const revealedObservations = useGameStore((s) => s.revealedObservations)
   const revealObservation = useGameStore((s) => s.revealObservation)
+  const usedTopics = useGameStore((s) => s.usedTopics)
+  const actor = useGameStore((s) => s.currentActor())
+  // 会話で聞いた話題のうちhint付きのものを既に聞いていれば、その観察ポイントを
+  // 「調べてみる価値がありそう」として示す(会話→推理→鑑定の橋渡し)。
+  // hintは今のところ一部の客のtopicsにしか付けていないので、無ければ
+  // 自然に何も示されない。filter/mapの結果をそのままZustandセレクタの
+  // 戻り値にすると毎回新しい配列になり無限ループするため、ここでuseMemoする。
+  const suggestedIds = useMemo(() => {
+    if (!actor?.topics) return []
+    return actor.topics.filter((t) => t.hint && usedTopics.includes(t.id)).map((t) => t.hint)
+  }, [actor, usedTopics])
   const [failed, setFailed] = useState(false)
   const [hoveredId, setHoveredId] = useState(null)
   const itemDropRef = useRef(null)
@@ -436,7 +451,10 @@ export function InspectionDesk({ item, hasDetector, soulCheckText }) {
                 className={
                   "obs-line" +
                   (revealedObservations.includes(obs.id) ? " obs-line-revealed" : "") +
-                  (hoveredId === obs.id ? " obs-line-hovered" : "")
+                  (hoveredId === obs.id ? " obs-line-hovered" : "") +
+                  (!revealedObservations.includes(obs.id) && suggestedIds.includes(obs.id)
+                    ? " obs-line-suggested"
+                    : "")
                 }
                 x1={anchorX}
                 y1={anchorY}
@@ -476,6 +494,7 @@ export function InspectionDesk({ item, hasDetector, soulCheckText }) {
               left={left}
               top={top}
               revealed={revealedObservations.includes(obs.id)}
+              suggested={!revealedObservations.includes(obs.id) && suggestedIds.includes(obs.id)}
               disabled={remaining <= 0}
               onReveal={revealObservation}
               onHoverChange={setHoveredId}
@@ -501,13 +520,15 @@ export function InspectionDesk({ item, hasDetector, soulCheckText }) {
 // 判別機をドラッグしている間、先端から商品へ向かって魔力の光が伸びている
 // ように見せる。「どうやって商品にかざすのか」を説明文に頼らず伝えるための
 // 視覚的な導線。
-function SoulBeam({ from, targetRef }) {
+// intensity(0〜1)は商品への近さ。近づくほど太く・明るくなり、「実際に
+// かざして反応を強めている」感覚を出す。
+function SoulBeam({ from, targetRef, intensity }) {
   const rect = targetRef?.current?.getBoundingClientRect()
   if (!rect) return null
   const tx = rect.left + rect.width / 2
   const ty = rect.top + rect.height / 2
   return (
-    <svg className="soul-beam">
+    <svg className="soul-beam" style={{ "--soul-beam-intensity": intensity }}>
       <line x1={from.x} y1={from.y} x2={tx} y2={ty} />
     </svg>
   )
@@ -522,6 +543,7 @@ export function SoulDetectorTool({ dropZoneRef, soulCheckText }) {
   const draggingRef = useRef(false)
   const [dragging, setDragging] = useState(false)
   const [clonePos, setClonePos] = useState({ x: 0, y: 0 })
+  const [proximity, setProximity] = useState(0)
 
   const runCheck = () => {
     if (soulChecked) return
@@ -552,9 +574,12 @@ export function SoulDetectorTool({ dropZoneRef, soulCheckText }) {
     const dist = Math.hypot(e.clientX - cx, e.clientY - cy)
     const over =
       e.clientX >= rect.left && e.clientX <= rect.right && e.clientY >= rect.top && e.clientY <= rect.bottom
-    const near = dist < Math.max(rect.width, rect.height) * 1.6
+    const nearRange = Math.max(rect.width, rect.height) * 1.6
+    const near = dist < nearRange
     dropZoneRef.current.classList.toggle("item-drop-active", over)
     dropZoneRef.current.classList.toggle("item-drop-near", near && !over)
+    // ビームの強さは距離の逆数。遠いほど弱く、かざしている間は最大になる。
+    setProximity(over ? 1 : Math.max(0, 1 - dist / (nearRange * 2.2)))
   }
   const onPointerUp = (e) => {
     if (!draggingRef.current) return
@@ -586,7 +611,7 @@ export function SoulDetectorTool({ dropZoneRef, soulCheckText }) {
       </button>
       {dragging && (
         <>
-          <SoulBeam from={clonePos} targetRef={dropZoneRef} />
+          <SoulBeam from={clonePos} targetRef={dropZoneRef} intensity={proximity} />
           <img
             className="soul-tool-clone"
             style={{ left: clonePos.x, top: clonePos.y }}
@@ -668,6 +693,34 @@ export function DialogueLog() {
 // 表示する(全画面ポップアップで覆うと、キャラの反応が見えないまま話が進んでしまう
 // ため)。反応の本文はすでに dialogueLog / SpeechBubble 側に流れている前提で、
 // ここではその結果(増減額)と「次へ」だけを出す。
+// 判断エリアの右側に置く「今回の鑑定」簡易メモ。鑑定机で開示した情報と
+// 魂判別機の結果だけをまとめ、判断の直前に見返せるようにする。大量の文章は
+// 置かず、鑑定机で既に見た内容をラベル+短文で並べるだけに留める。
+export function DecisionMemo({ item, revealedObservations, soulLine }) {
+  const observations = item?.hiddenObservations || []
+  const revealed = observations.filter((o) => revealedObservations.includes(o.id))
+  if (revealed.length === 0 && !soulLine) return null
+  return (
+    <div className="decision-memo">
+      <p className="decision-memo-title">今回の鑑定</p>
+      <ul className="decision-memo-list">
+        {revealed.map((o) => (
+          <li key={o.id}>
+            <span className="decision-memo-label">{o.label}</span>
+            {o.text}
+          </li>
+        ))}
+        {soulLine && (
+          <li>
+            <span className="decision-memo-label">魂</span>
+            {soulLine}
+          </li>
+        )}
+      </ul>
+    </div>
+  )
+}
+
 export function ResultPanel({ resolution, onContinue }) {
   if (!resolution) return null
   return (
