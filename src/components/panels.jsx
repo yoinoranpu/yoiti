@@ -324,13 +324,17 @@ export function ScenePanel({
 
 // 商品の各部位から線を伸ばした鑑定札。未鑑定は古い紙札風の「???」、
 // 鑑定した瞬間にインクが乗るような小さな演出(obs-node-revealed)を入れる。
-function ObservationNode({ obs, left, top, revealed, disabled, onReveal }) {
+// ホバー中は「ここがクリックできる」とすぐ分かるよう、対応する線を
+// 明るくし札を少し持ち上げる(onHoverはInspectionDesk側でクラス切り替え)。
+function ObservationNode({ obs, left, top, revealed, disabled, onReveal, onHoverChange }) {
   return (
     <button
       className={"obs-node" + (revealed ? " obs-node-revealed" : " obs-node-hidden")}
       style={{ left: `${left}%`, top: `${top}%` }}
       disabled={revealed || disabled}
       onClick={() => onReveal(obs.id)}
+      onMouseEnter={() => onHoverChange?.(obs.id)}
+      onMouseLeave={() => onHoverChange?.(null)}
     >
       <span className="obs-node-label">{obs.label}</span>
       {revealed ? (
@@ -346,12 +350,14 @@ function ObservationNode({ obs, left, top, revealed, disabled, onReveal }) {
 // 札が切れにくく、商品のどの部位から線が伸びているかも追いやすい。
 // 振り分けは部位の位置そのもの(左寄りの部位は左の列)に従い、列の中でも
 // 上下の順に並べる — 線が交差しにくくなり、図として読めるようになる。
-const layoutObservations = (observations, itemSpanX) => {
+// itemSpanX/Yは商品イラストの実際の占有範囲(机全体に対する割合)に合わせて
+// あるので、線の始点が「本当にその部位の位置」から伸びて見える。
+const layoutObservations = (observations, itemSpanX, itemSpanY) => {
   const entries = observations.map((obs) => ({
     obs,
-    // 部位の位置(商品ローカルの0-100%)を机全体の座標に変換する。
+    // 部位の位置(商品ローカルの0-100%、50が商品の中心)を机全体の座標に変換する。
     anchorX: 50 + ((obs.x ?? 50) - 50) * itemSpanX,
-    anchorY: 50 + ((obs.y ?? 50) - 50) * 0.66,
+    anchorY: 50 + ((obs.y ?? 50) - 50) * itemSpanY,
     partX: obs.x ?? 50,
     partY: obs.y ?? 50,
   }))
@@ -396,6 +402,7 @@ export function InspectionDesk({ item, hasDetector, soulCheckText }) {
   const revealedObservations = useGameStore((s) => s.revealedObservations)
   const revealObservation = useGameStore((s) => s.revealObservation)
   const [failed, setFailed] = useState(false)
+  const [hoveredId, setHoveredId] = useState(null)
   const itemDropRef = useRef(null)
 
   if (!item) return null
@@ -404,15 +411,16 @@ export function InspectionDesk({ item, hasDetector, soulCheckText }) {
   const used = revealedObservations.length
   const remaining = Math.max(0, budget - used)
   const total = observations.length
-  const placed = layoutObservations(observations, 0.22)
+  // 商品イラストが机の中心でどれくらいの幅/高さを占めるか(机全体に対する比率)。
+  // ここに合わせて部位の位置を変換するので、線が本当に商品の上のその場所から
+  // 伸びているように見える(商品を拡大したら、ここも合わせて大きくする)。
+  const placed = layoutObservations(observations, 0.42, 0.42)
 
   return (
     <div className="inspection-desk">
       <div className="obs-budget">
         <p className="desk-phase-label">鑑定: 気になる部分を調べる</p>
-        <span className="obs-budget-text">
-          調べられる箇所 {total} / 残り {remaining}
-        </span>
+        <span className="obs-budget-text">🔎 {remaining}/{total}</span>
         <ObservationBudgetPips budget={budget} used={used} />
       </div>
       <div
@@ -420,11 +428,16 @@ export function InspectionDesk({ item, hasDetector, soulCheckText }) {
         style={{ backgroundImage: `url(${assetUrl("assets/backgrounds/inspection-desk-back.png")})` }}
       >
         <div className="inspection-desk-stage">
+          <div className="inspection-desk-stage-dim" aria-hidden="true" />
           <svg className="obs-lines" viewBox="0 0 100 100" preserveAspectRatio="none">
             {placed.map(({ obs, left, top, anchorX, anchorY }) => (
               <line
                 key={obs.id}
-                className={revealedObservations.includes(obs.id) ? "obs-line-revealed" : ""}
+                className={
+                  "obs-line" +
+                  (revealedObservations.includes(obs.id) ? " obs-line-revealed" : "") +
+                  (hoveredId === obs.id ? " obs-line-hovered" : "")
+                }
                 x1={anchorX}
                 y1={anchorY}
                 x2={left}
@@ -448,7 +461,9 @@ export function InspectionDesk({ item, hasDetector, soulCheckText }) {
             <span
               key={`anchor-${obs.id}`}
               className={
-                "obs-anchor" + (revealedObservations.includes(obs.id) ? " obs-anchor-revealed" : "")
+                "obs-anchor" +
+                (revealedObservations.includes(obs.id) ? " obs-anchor-revealed" : "") +
+                (hoveredId === obs.id ? " obs-anchor-hovered" : "")
               }
               style={{ left: `${anchorX}%`, top: `${anchorY}%` }}
               aria-hidden="true"
@@ -463,6 +478,7 @@ export function InspectionDesk({ item, hasDetector, soulCheckText }) {
               revealed={revealedObservations.includes(obs.id)}
               disabled={remaining <= 0}
               onReveal={revealObservation}
+              onHoverChange={setHoveredId}
             />
           ))}
         </div>
@@ -482,6 +498,21 @@ export function InspectionDesk({ item, hasDetector, soulCheckText }) {
 // (dropZoneRef)に直接ドラッグしてかざす操作にする(ドラッグせずクリック
 // しただけでも動作する保険つき)。判別機自体は商品の縮小コピーを持たず、
 // 中央の実物だけが対象になるようにする。
+// 判別機をドラッグしている間、先端から商品へ向かって魔力の光が伸びている
+// ように見せる。「どうやって商品にかざすのか」を説明文に頼らず伝えるための
+// 視覚的な導線。
+function SoulBeam({ from, targetRef }) {
+  const rect = targetRef?.current?.getBoundingClientRect()
+  if (!rect) return null
+  const tx = rect.left + rect.width / 2
+  const ty = rect.top + rect.height / 2
+  return (
+    <svg className="soul-beam">
+      <line x1={from.x} y1={from.y} x2={tx} y2={ty} />
+    </svg>
+  )
+}
+
 export function SoulDetectorTool({ dropZoneRef, soulCheckText }) {
   const soulChecked = useGameStore((s) => s.soulChecked)
   const checkSoul = useGameStore((s) => s.checkSoul)
@@ -554,12 +585,15 @@ export function SoulDetectorTool({ dropZoneRef, soulCheckText }) {
         <img className="soul-tool-icon" src={assetUrl("assets/icons/icon-soul-detector.png")} alt="魂判別機" />
       </button>
       {dragging && (
-        <img
-          className="soul-tool-clone"
-          style={{ left: clonePos.x, top: clonePos.y }}
-          src={assetUrl("assets/icons/icon-soul-detector.png")}
-          alt=""
-        />
+        <>
+          <SoulBeam from={clonePos} targetRef={dropZoneRef} />
+          <img
+            className="soul-tool-clone"
+            style={{ left: clonePos.x, top: clonePos.y }}
+            src={assetUrl("assets/icons/icon-soul-detector.png")}
+            alt=""
+          />
+        </>
       )}
       <p className="soul-tool-result">{soulChecked ? soulCheckText : "道具を商品にかざして調べる"}</p>
     </div>

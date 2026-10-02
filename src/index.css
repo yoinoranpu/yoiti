@@ -681,23 +681,27 @@ button {
   letter-spacing: 0.04em;
 }
 
+/* 「あと何回調べられるか」を一瞬で読める形(🔎 残り/全体)にする。
+   ピップの行とは別に、数字そのものも併記する。 */
 .obs-budget-text {
-  font-size: 0.72rem;
-  color: var(--color-text-dim);
+  font-size: 0.95rem;
+  font-weight: bold;
+  color: var(--color-accent);
+  letter-spacing: 0.02em;
 }
 
 .obs-budget-pips {
   display: flex;
   gap: 0.3rem;
   margin-left: auto;
-  padding: 0.15rem 0.4rem;
+  padding: 0.25rem 0.5rem;
   background: rgba(14, 11, 18, 0.6);
   box-shadow: inset 2px 2px 0 rgba(0, 0, 0, 0.5), inset -2px -2px 0 var(--bevel-light);
 }
 
 .obs-pip {
-  width: 20px;
-  height: 20px;
+  width: 24px;
+  height: 24px;
   image-rendering: pixelated;
   filter: drop-shadow(0 0 3px rgba(201, 162, 74, 0.6));
 }
@@ -726,6 +730,21 @@ button {
   min-width: 0;
 }
 
+/* 地図の模様が鑑定線・鑑定対象と競合しないよう、机全体を少し暗くしたうえで
+   中央(商品が置かれている場所)だけ明るく抜く。「背景=机、明るい部分=
+   今調べている情報」という階層を作る。 */
+.inspection-desk-stage-dim {
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(
+    ellipse 60% 70% at 50% 50%,
+    transparent 0%,
+    rgba(10, 8, 14, 0.2) 45%,
+    rgba(10, 8, 14, 0.5) 100%
+  );
+  pointer-events: none;
+}
+
 .obs-lines {
   position: absolute;
   inset: 0;
@@ -734,27 +753,50 @@ button {
 }
 
 /* 未鑑定の線は羊皮紙の上でも見えるよう濃い茶、鑑定済みは灯りの琥珀色にする。
-   「どの札が商品のどこを指しているか」は鑑定前から分かるようにしておく。 */
-.obs-lines line {
+   「どの札が商品のどこを指しているか」は鑑定前から分かるようにしておく。
+   ホバー中はさらに明るくして「ここが押せる」を伝える。 */
+.obs-lines line.obs-line {
   stroke: #4a3a18;
-  stroke-width: 0.45;
-  opacity: 0.6;
-  transition: stroke 0.3s ease, opacity 0.3s ease, stroke-width 0.3s ease;
+  stroke-width: 0.5;
+  opacity: 0.65;
+  transition: stroke 0.2s ease, opacity 0.2s ease, stroke-width 0.2s ease;
 }
 
 .obs-lines line.obs-line-revealed {
   stroke: var(--color-accent);
   opacity: 0.95;
-  stroke-width: 0.85;
+  stroke-width: 0.9;
+  animation: obs-line-flash 0.5s ease-out;
 }
 
+.obs-lines line.obs-line-hovered {
+  stroke: #ffe9b8;
+  opacity: 1;
+  stroke-width: 1.1;
+}
+
+@keyframes obs-line-flash {
+  0% {
+    stroke: #fff2c8;
+    stroke-width: 1.6;
+    opacity: 1;
+  }
+  100% {
+    stroke: var(--color-accent);
+    stroke-width: 0.9;
+    opacity: 0.95;
+  }
+}
+
+/* 商品の実際の占有範囲に合わせて大きめにする(1.4倍)。机の主役が
+   商品であることを一目で分かるようにするため。 */
 .inspection-desk-item-dropzone {
   position: absolute;
   left: 50%;
   top: 50%;
   transform: translate(-50%, -50%);
-  width: 170px;
-  height: 170px;
+  width: 230px;
+  height: 230px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -763,16 +805,16 @@ button {
 }
 
 .inspection-desk-item-img {
-  width: 150px;
-  height: 150px;
+  width: 210px;
+  height: 210px;
   object-fit: contain;
   image-rendering: pixelated;
-  filter: drop-shadow(0 0 8px rgba(0, 0, 0, 0.6));
+  filter: drop-shadow(0 3px 10px rgba(0, 0, 0, 0.7));
 }
 
 .inspection-desk-item-placeholder {
-  width: 150px;
-  height: 150px;
+  width: 210px;
+  height: 210px;
   background: var(--color-panel-alt);
   border: 1px solid var(--color-border);
 }
@@ -809,6 +851,7 @@ button {
   width: 136px;
   text-align: left;
   box-shadow: inset -2px -2px 0 rgba(90, 72, 38, 0.5), 3px 3px 0 rgba(0, 0, 0, 0.5);
+  transition: transform 0.12s ease, box-shadow 0.12s ease, background 0.12s ease;
 }
 
 /* 未鑑定の札は「部位名 + ？」の一行だけにして薄く小さく置く。
@@ -860,6 +903,13 @@ button {
   box-shadow: 0 0 0 2px rgba(14, 11, 18, 0.8), 0 0 6px rgba(201, 162, 74, 0.8);
 }
 
+.obs-anchor-hovered {
+  width: 9px;
+  height: 9px;
+  background: #ffe9b8;
+  box-shadow: 0 0 0 2px rgba(14, 11, 18, 0.8), 0 0 8px rgba(255, 233, 184, 0.9);
+}
+
 .obs-node-hidden {
   background: #6e6248;
   box-shadow: inset -2px -2px 0 rgba(0, 0, 0, 0.35), 3px 3px 0 rgba(0, 0, 0, 0.5);
@@ -871,8 +921,9 @@ button {
 
 .obs-node-hidden:hover:not(:disabled) {
   background: #857753;
+  transform: translate(-50%, calc(-50% - 2px));
   box-shadow: inset -2px -2px 0 rgba(0, 0, 0, 0.35), 0 0 0 2px rgba(201, 162, 74, 0.7),
-    3px 3px 0 rgba(0, 0, 0, 0.5);
+    3px 5px 0 rgba(0, 0, 0, 0.5);
 }
 
 .obs-node-revealed {
@@ -942,6 +993,13 @@ button {
 
 .scene-actor-clickable {
   cursor: pointer;
+}
+
+/* 客にカーソルを合わせたときだけ、淡い琥珀色の縁取りで「ここをクリック
+   できる」と伝える(常時は出さない、控えめな気づきのため)。 */
+.scene-actor-clickable:hover .scene-figure-img {
+  filter: drop-shadow(1px 0 0 rgba(201, 162, 74, 0.85)) drop-shadow(-1px 0 0 rgba(201, 162, 74, 0.85))
+    drop-shadow(0 1px 0 rgba(201, 162, 74, 0.85)) drop-shadow(0 -1px 0 rgba(201, 162, 74, 0.85));
 }
 
 .talk-hint {
@@ -1129,6 +1187,32 @@ button {
   pointer-events: none;
   z-index: 999;
   filter: drop-shadow(0 0 8px rgba(138, 95, 214, 0.9));
+}
+
+/* ドラッグ中、判別機の先端から商品へ伸びる魔力の光。 */
+.soul-beam {
+  position: fixed;
+  inset: 0;
+  width: 100vw;
+  height: 100vh;
+  pointer-events: none;
+  z-index: 998;
+}
+
+.soul-beam line {
+  stroke: var(--color-soul);
+  stroke-width: 2.5;
+  stroke-linecap: round;
+  stroke-dasharray: 5 6;
+  opacity: 0.75;
+  filter: drop-shadow(0 0 5px rgba(138, 95, 214, 0.9));
+  animation: soul-beam-flow 0.4s linear infinite;
+}
+
+@keyframes soul-beam-flow {
+  to {
+    stroke-dashoffset: -22;
+  }
 }
 
 /* 判別機の読み取り値。机のイラストの上でも読めるよう、暗い板を敷く。 */
