@@ -1,6 +1,6 @@
 import { useGameStore } from "../store/gameStore"
 import { REFERENCE } from "../data/days"
-import { InfoOverlay, ScenePanel, DialogueLog, ResultPanel, IconLabel, InspectionDesk, DecisionMemo, assetUrl } from "./panels"
+import { InfoOverlay, ScenePanel, DialogueLog, ResultPanel, IconLabel, InspectionDesk, assetUrl } from "./panels"
 
 function TopBar() {
   const day = useGameStore((s) => s.day)
@@ -38,7 +38,6 @@ function SellDialoguePanel({ item }) {
   const sellAtValue = useGameStore((s) => s.sellAtValue)
   const tryHaggleUp = useGameStore((s) => s.tryHaggleUp)
   const skipSell = useGameStore((s) => s.skipSell)
-  const revealedObservations = useGameStore((s) => s.revealedObservations)
 
   return (
     <div className="dialogue">
@@ -67,7 +66,6 @@ function SellDialoguePanel({ item }) {
             <button className="btn btn-trade" onClick={skipSell}>
               <IconLabel icon="icon-refuse">やめておく</IconLabel>
             </button>
-            <DecisionMemo item={item} revealedObservations={revealedObservations} soulLine={null} />
           </div>
         </div>
       )}
@@ -102,7 +100,7 @@ export default function AppraisalScreen() {
             topics={item.buyer.topics}
             engaged={engaged}
             onEngage={engageCustomer}
-            backdropImage="appraisal-room-back"
+            backdropImage="shop-room-back"
             illustrationClues={item.buyer.illustrationClues}
           />
           <InfoOverlay reference={REFERENCE} />

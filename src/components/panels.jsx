@@ -630,37 +630,6 @@ export function DialogueLog() {
 // 表示する(全画面ポップアップで覆うと、キャラの反応が見えないまま話が進んでしまう
 // ため)。反応の本文はすでに dialogueLog / SpeechBubble 側に流れている前提で、
 // ここではその結果(増減額)と「次へ」だけを出す。
-// 判断エリアの右側に置く「今回の鑑定」簡易メモ。鑑定机で開示した情報と
-// 魂判別機の結果だけをまとめ、判断の直前に見返せるようにする。大量の文章は
-// 置かず、鑑定机で既に見た内容をラベル+短文で並べるだけに留める。
-export function DecisionMemo({ item, revealedObservations, soulLine }) {
-  const observations = item?.hiddenObservations || []
-  const revealed = observations.filter((o) => revealedObservations.includes(o.id))
-  // 何も鑑定していない間も箱自体は出しておく(常に同じ高さ)。鑑定するたびに
-  // 中身が増えて判断エリア全体が伸び縮みする、という「机が狭くなる」バグの
-  // 原因だったため、最初から場所を確保しておく。
-  return (
-    <div className="decision-memo">
-      <p className="decision-memo-title">今回の鑑定</p>
-      <ul className="decision-memo-list">
-        {revealed.length === 0 && !soulLine && <li className="decision-memo-empty">まだ何も分かっていない</li>}
-        {revealed.map((o) => (
-          <li key={o.id}>
-            <span className="decision-memo-label">{o.label}</span>
-            {o.text}
-          </li>
-        ))}
-        {soulLine && (
-          <li>
-            <span className="decision-memo-label">魂</span>
-            {soulLine}
-          </li>
-        )}
-      </ul>
-    </div>
-  )
-}
-
 export function ResultPanel({ resolution, onContinue }) {
   if (!resolution) return null
   return (

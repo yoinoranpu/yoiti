@@ -1,5 +1,5 @@
 import { useGameStore } from "../store/gameStore"
-import { InfoOverlay, ScenePanel, DialogueLog, ResultPanel, IconLabel, InspectionDesk, DecisionMemo, ShelfDisplay, assetUrl } from "./panels"
+import { InfoOverlay, ScenePanel, DialogueLog, ResultPanel, IconLabel, InspectionDesk, ShelfDisplay, assetUrl } from "./panels"
 
 function TopBar() {
   const day = useGameStore((s) => s.day)
@@ -45,8 +45,6 @@ function DialoguePanel({ customer }) {
   const tryLowball = useGameStore((s) => s.tryLowball)
   const refuse = useGameStore((s) => s.refuse)
   const report = useGameStore((s) => s.report)
-  const revealedObservations = useGameStore((s) => s.revealedObservations)
-  const soulChecked = useGameStore((s) => s.soulChecked)
 
   // 鑑定机を出していない場面(客が声をかけてきた直後・判断の結果表示)でも
   // パネル自体の高さは変えない(engaged切り替えのたびに画面が動いて
@@ -83,11 +81,6 @@ function DialoguePanel({ customer }) {
                 <IconLabel icon="icon-report">通報する</IconLabel>
               </button>
             )}
-            <DecisionMemo
-              item={customer.item}
-              revealedObservations={revealedObservations}
-              soulLine={hasDetector && soulChecked ? customer.soulCheckText : null}
-            />
           </div>
         </div>
       )}
