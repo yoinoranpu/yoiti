@@ -76,11 +76,11 @@ function DialoguePanel({ customer }) {
             <button className="btn btn-trade" onClick={refuse}>
               <IconLabel icon="icon-refuse">断る</IconLabel>
             </button>
-            {customer.resolution.report && (
-              <button className="btn btn-trade btn-report" onClick={report}>
-                <IconLabel icon="icon-report">通報する</IconLabel>
-              </button>
-            )}
+            {/* ボタンの有無で「この客は怪しい」とバレないよう、通報は常に表示する
+                (後ろめたさの無い客を通報した場合の結末はgameStore.report側で処理)。 */}
+            <button className="btn btn-trade btn-report" onClick={report}>
+              <IconLabel icon="icon-report">通報する</IconLabel>
+            </button>
           </div>
         </div>
       )}

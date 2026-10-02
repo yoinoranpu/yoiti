@@ -240,8 +240,15 @@ export const useGameStore = create((set, get) => ({
 
   report: () => {
     const customer = get().currentCustomer()
-    const resolution = customer.resolution.report
-    if (!resolution) return
+    // customer.resolution.reportが無い(=後ろめたさの無い客)場合でも、ボタンの
+    // 有無が「この客は怪しい」というネタバレにならないよう、通報ボタン自体は
+    // 常に表示する。その代わりデータの無い客を通報すると、空振りで心証を
+    // 損なう汎用の結末を返す。
+    const resolution = customer.resolution.report ?? {
+      goldDelta: 0,
+      text: `${customer.name}の様子に特に怪しい点は見つからず、ただの言いがかりで終わった。気分を害した${customer.name}は、何も売らずに店を出ていった。`,
+      favor: { market: -4 },
+    }
     set((state) => ({
       gold: state.gold + resolution.goldDelta,
       dialogueLog: [...state.dialogueLog, { speaker: "narration", text: resolution.text }],
