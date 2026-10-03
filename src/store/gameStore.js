@@ -16,6 +16,7 @@ const itemToInventory = (item, revealedCount = 0, paidPrice = 0) => ({
   observationBudget: item.observationBudget,
   observedCount: revealedCount, // 購入時点までに鑑定机で開示できていた件数(棚のツールチップ表示用)
   paidPrice, // 実際に支払った額(棚で「いくらで買った品か」を確認できるように)
+  category: item.category, // 査定時、買い手のwantsCategoryと照合して代用可否を判定する
   buyer: item.buyer,
 })
 
@@ -106,6 +107,7 @@ export const useGameStore = create((set, get) => ({
   appraisalIndex: 0,
   appraisalQueue: [], // その日の査定対象のスナップショット(在庫は査定中に減っていくため)
   appraisalResolution: null,
+  offeredItemId: null, // 査定机に今置いている在庫のinvId(棚からドラッグして置く)
   viewedClues: [],
   revealedObservations: [], // 今回の接客で鑑定机から個別に開示済みの hiddenObservations id
   engaged: false, // 客が声をかけてきた段階(false)か、クリックして接客を始めた段階(true)か
@@ -131,6 +133,7 @@ export const useGameStore = create((set, get) => ({
       appraisalIndex: 0,
       appraisalQueue: [],
       appraisalResolution: null,
+      offeredItemId: null,
     })
   },
 
@@ -138,13 +141,38 @@ export const useGameStore = create((set, get) => ({
   currentCustomer: () => currentDayConfig(get()).customers[get().customerIndex],
   currentAppraisalItem: () => get().appraisalQueue[get().appraisalIndex],
   currentBuyer: () => get().currentAppraisalItem()?.buyer,
+  // 査定机に今置いている在庫(ドラッグして置いた品)。何も置いていなければnull。
+  currentOfferedItem: () => get().inventory.find((i) => i.invId === get().offeredItemId) ?? null,
   // 会話パネルは買い(客)・売り(仲買人)の両方で共有する。今どちらの相手と話しているか。
   currentActor: () => (get().screen === "appraisal" ? get().currentBuyer() : get().currentCustomer()),
-  // 鑑定机も買い・売り両方で共有する。今調べている商品はどちらか。
-  currentItem: () => (get().screen === "appraisal" ? get().currentAppraisalItem() : get().currentCustomer()?.item),
+  // 鑑定机も買い・売り両方で共有する。今調べている商品はどちらか
+  // (査定側は「机に置いた品」。まだ何も置いていなければnullのまま)。
+  currentItem: () => (get().screen === "appraisal" ? get().currentOfferedItem() : get().currentCustomer()?.item),
 
   // 客が声をかけてきた段階から、クリックして接客(鑑定机)を始める段階に移る。
   engageCustomer: () => set({ engaged: true }),
+
+  // 棚(在庫)から査定机に品物をドラッグして置く。買い手のwantsCategoryと
+  // 合わない場合は置けず、代わりに「興味を示さなかった」という一言だけ残す
+  // (完全に無関係な品を渡して交渉が始まってしまうのを防ぐため)。
+  // wantsCategoryが設定されていない買い手(データ未移行の日)には常に置ける。
+  placeItemOnDesk: (invId) => {
+    const state = get()
+    const buyer = state.currentBuyer()
+    const item = state.inventory.find((i) => i.invId === invId)
+    if (!buyer || !item) return
+    if (buyer.wantsCategory && item.category !== buyer.wantsCategory) {
+      set((s) => ({
+        dialogueLog: [
+          ...s.dialogueLog,
+          { speaker: "narration", text: `${buyer.name}は${item.name}には興味を示さなかった。` },
+        ],
+      }))
+      return
+    }
+    set({ offeredItemId: invId })
+  },
+  clearOfferedItem: () => set({ offeredItemId: null }),
 
   talk: (topicId) => {
     const actor = get().currentActor()
@@ -284,6 +312,7 @@ export const useGameStore = create((set, get) => ({
         appraisalIndex: 0,
         appraisalQueue: queue,
         appraisalResolution: null,
+        offeredItemId: null,
         ...(firstItem
           ? encounterStateFor(firstItem.buyer, null, appraisalRequestLine(firstItem))
           : ownerEncounterState(state.quota)),
@@ -303,7 +332,7 @@ export const useGameStore = create((set, get) => ({
 
   // 言い値で売る: 確実にtrueValueが手に入る。売れた品は在庫から取り除く。
   sellAtValue: () => {
-    const item = get().currentAppraisalItem()
+    const item = get().currentOfferedItem()
     if (!item || get().appraisalResolution) return
     set((state) => ({
       gold: state.gold + item.trueValue,
@@ -319,13 +348,14 @@ export const useGameStore = create((set, get) => ({
   // 高く売れないか粘る: 魂入りなど危ない品だと買い手が手を引いてしまうことがある。
   // 手を引かれた場合は売れていないので在庫に残す。
   tryHaggleUp: () => {
-    const item = get().currentAppraisalItem()
+    const item = get().currentOfferedItem()
     if (!item || get().appraisalResolution) return
     if (item.hasSoul) {
+      const buyer = get().currentBuyer()
       set((state) => ({
         dialogueLog: [
           ...state.dialogueLog,
-          { speaker: item.buyer.name, text: "「そこまで背負うつもりはない」" },
+          { speaker: buyer.name, text: "「そこまで背負うつもりはない」" },
         ],
         appraisalResolution: { goldDelta: 0, kind: "declined" },
       }))
@@ -342,14 +372,21 @@ export const useGameStore = create((set, get) => ({
     }))
   },
 
-  // やめておく: 在庫に残したまま、翌日以降また査定できる。
+  // やめておく: 商品を渡していればそれは在庫に残したまま、買い手には声をかけず見送る。
+  // 何も置いていなくても(品を渡さないまま)見送れる。
   skipSell: () => {
-    const item = get().currentAppraisalItem()
-    if (!item || get().appraisalResolution) return
+    if (get().appraisalResolution) return
+    const item = get().currentOfferedItem()
+    const buyer = get().currentBuyer()
     set((state) => ({
       dialogueLog: [
         ...state.dialogueLog,
-        { speaker: "narration", text: `${item.name}は今夜は売らずに懐にしまった。` },
+        {
+          speaker: "narration",
+          text: item
+            ? `${item.name}は今夜は売らずに懐にしまった。`
+            : `欲しい物が見当たらなかったのか、${buyer?.name ?? "客"}は何も買わずに出ていった。`,
+        },
       ],
       appraisalResolution: { goldDelta: 0, kind: "declined" },
     }))
@@ -361,6 +398,7 @@ export const useGameStore = create((set, get) => ({
     set({
       appraisalIndex: nextIndex,
       appraisalResolution: null,
+      offeredItemId: null,
       ...(nextItem ? encounterStateFor(nextItem.buyer, null, appraisalRequestLine(nextItem)) : ownerEncounterState(get().quota)),
     })
   },
@@ -404,6 +442,7 @@ export const useGameStore = create((set, get) => ({
       appraisalIndex: 0,
       appraisalQueue: [],
       appraisalResolution: null,
+      offeredItemId: null,
     })
   },
 

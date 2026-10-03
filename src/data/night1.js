@@ -50,6 +50,7 @@ export const CUSTOMERS = [
       description: "使い込まれた片手剣。柄に小さな刻印がある。",
       image: "item-sword",
       hasSoul: false,
+      category: "weapon",
       hiddenObservations: [
         { id: "c1-i1", label: "刃", text: "刃こぼれはあるが、手入れはされている。" },
         { id: "c1-i2", label: "柄の刻印", text: "小隊の紋章らしき刻印。ありふれたものだ。" },
@@ -57,6 +58,8 @@ export const CUSTOMERS = [
       buyer: {
         name: "ゲオルグ",
         image: "c1-buyer-georg",
+        // wantsCategory: 「普通の剣を探してる」という台詞通り、刃物なら代用がきく。
+        wantsCategory: "weapon",
         arrival: "顔なじみの道具商ゲオルグが、いつも通りふらりと店に立ち寄る。",
         appearance: [
           { id: "b1-a1", label: "身なり", text: "使い古した商人の外套。夜市の常連らしい落ち着きがある。" },
@@ -122,6 +125,7 @@ export const CUSTOMERS = [
       description: "古い木片を組んだ護符。中央に何かが埋め込まれている気配がある。",
       image: "item-amulet",
       hasSoul: true,
+      category: "amulet",
       hiddenObservations: [
         {
           id: "c2-i1",
@@ -133,6 +137,8 @@ export const CUSTOMERS = [
       buyer: {
         name: "フード姿の男",
         image: "c2-buyer-hooded",
+        // wantsCategory: この手の護符・呪物を欲しがる客。代用も同系統のみ。
+        wantsCategory: "amulet",
         arrival: "顔を隠すようにフードを深く被った男が、音もなく近づいてくる。",
         appearance: [
           { id: "b2-a1", label: "様子", text: "終始、周囲を気にしている。夜市の顔なじみではなさそうだ。" },
@@ -207,12 +213,15 @@ export const CUSTOMERS = [
       description: "量産品らしい短剣。柄に何かの登録番号らしき刻印がある。",
       image: "item-dagger",
       hasSoul: false,
+      category: "weapon",
       hiddenObservations: [
         { id: "c3-i1", label: "柄の刻印", text: "衛兵隊の備品によくある管理番号のような刻印。" },
       ],
       buyer: {
         name: "若い鍛冶屋見習い",
         image: "c3-buyer-blacksmith",
+        // wantsCategory: 「刃物なら何でも構いません」という台詞通り、完全に代用可能。
+        wantsCategory: "weapon",
         arrival: "若い鍛冶屋見習いが、素材にする刃物を探して立ち寄る。",
         appearance: [
           { id: "b3-a1", label: "様子", text: "職人らしい無骨な手をしている。値段交渉には慣れていなさそうだ。" },

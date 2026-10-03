@@ -243,6 +243,7 @@ export function ScenePanel({
   backdropImage,
   leaving,
   showShelf,
+  shelfDraggable,
   engageHint = "客をクリックして話を聞こう",
 }) {
   const [talkOpen, setTalkOpen] = useState(false)
@@ -264,7 +265,7 @@ export function ScenePanel({
   return (
     <div className="scene">
       <div className="scene-backdrop" style={backdropStyle} />
-      {showShelf && <ShelfDisplay />}
+      {showShelf && <ShelfDisplay draggable={shelfDraggable} />}
       <div
         className={
           "scene-actor" +
@@ -298,6 +299,17 @@ export function ScenePanel({
       </div>
     </div>
   )
+}
+
+// 商品categoryの日本語表示名。査定画面で買い手の「お探しの品」を示すのに使う。
+// 新しいcategoryをdaysに足したらここにも追加すること。
+export const CATEGORY_LABELS = {
+  weapon: "刃物",
+  amulet: "護符・呪物",
+  jewelry: "宝飾品",
+  book: "本・書類",
+  household: "日用品",
+  portrait: "肖像・人形",
 }
 
 // 商品の各部位から線を伸ばした鑑定札。未鑑定は古い紙札風の「???」、
@@ -384,9 +396,11 @@ export function InspectionDesk({ item, hasDetector, soulCheckText, itemKind }) {
   const [hoveredId, setHoveredId] = useState(null)
   const itemDropRef = useRef(null)
 
-  if (!item) return null
-  const observations = item.hiddenObservations || []
-  const budget = item.observationBudget ?? observations.length
+  // item が null の場合(査定机にまだ何も置いていない)でも、ドロップ先として
+  // ドロップゾーン自体は常に描画する。観察ノード・残り回数バッジなど
+  // 「調べる」系の演出だけを省く。
+  const observations = item?.hiddenObservations || []
+  const budget = item?.observationBudget ?? observations.length
   const used = revealedObservations.length
   const remaining = Math.max(0, budget - used)
   const total = observations.length
@@ -403,9 +417,11 @@ export function InspectionDesk({ item, hasDetector, soulCheckText, itemKind }) {
       <div className="inspection-desk-stage">
         <div className="inspection-desk-stage-dim" aria-hidden="true" />
         {/* 残り回数は独立した帯にせず、机の隅に小さな札として置く。 */}
-        <span className="obs-budget-badge">
-          🔎 {remaining}/{total}
-        </span>
+        {item && (
+          <span className="obs-budget-badge">
+            🔎 {remaining}/{total}
+          </span>
+        )}
         <svg className="obs-lines" viewBox="0 0 100 100" preserveAspectRatio="none">
             {placed.map(({ obs, left, top, anchorX, anchorY }) => (
               <line
@@ -426,15 +442,21 @@ export function InspectionDesk({ item, hasDetector, soulCheckText, itemKind }) {
             ))}
           </svg>
           <div ref={itemDropRef} className="inspection-desk-item-dropzone">
-            {item.image && !failed ? (
-              <img
-                className={"inspection-desk-item-img" + (itemKind === "acquired" ? " item-acquired" : "")}
-                src={assetUrl(`assets/items/${item.image}.png`)}
-                alt={item.name}
-                onError={() => setFailed(true)}
-              />
+            {item ? (
+              item.image && !failed ? (
+                <img
+                  className={"inspection-desk-item-img" + (itemKind === "acquired" ? " item-acquired" : "")}
+                  src={assetUrl(`assets/items/${item.image}.png`)}
+                  alt={item.name}
+                  onError={() => setFailed(true)}
+                />
+              ) : (
+                <div className="inspection-desk-item-placeholder" aria-hidden="true" />
+              )
             ) : (
-              <div className="inspection-desk-item-placeholder" aria-hidden="true" />
+              <div className="inspection-desk-item-empty" aria-hidden="true">
+                <p>ここに品物を置く</p>
+              </div>
             )}
           </div>
           {placed.map(({ obs, anchorX, anchorY }) => (
@@ -601,15 +623,75 @@ const CRATE_SLOTS = [
   { x: 80.0, y: 74.0 },
 ]
 
-function ShelfSlot({ item, x, y }) {
+// draggable=true(査定/売却シーン)のときだけ、棚の品物を査定机の
+// ドロップゾーン(.inspection-desk-item-dropzone、DOM上は別の木の下にある)
+// へドラッグできるようにする。ScenePanelとDialoguePanelは兄弟同士で
+// refを共有できないため、魂判別機と違いdropZoneRefを受け取らず、
+// document.querySelectorで直接ドロップ先を探す(机は常に1つしか無い前提)。
+// ドラッグせずクリックしただけでも置けるようにする保険は他の道具と同じ。
+function ShelfSlot({ item, x, y, draggable }) {
   const [hover, setHover] = useState(false)
   const [failed, setFailed] = useState(false)
+  const [dragging, setDragging] = useState(false)
+  const [clonePos, setClonePos] = useState({ x: 0, y: 0 })
+  const startRef = useRef({ x: 0, y: 0 })
+  const draggingRef = useRef(false)
+
+  const place = () => useGameStore.getState().placeItemOnDesk(item.invId)
+
+  const getDropZone = () => document.querySelector(".inspection-desk-item-dropzone")
+
+  const onPointerDown = (e) => {
+    if (!draggable) return
+    e.currentTarget.setPointerCapture(e.pointerId)
+    startRef.current = { x: e.clientX, y: e.clientY }
+    setClonePos({ x: e.clientX, y: e.clientY })
+    draggingRef.current = true
+    setDragging(true)
+  }
+  const onPointerMove = (e) => {
+    if (!draggingRef.current) return
+    setClonePos({ x: e.clientX, y: e.clientY })
+    const rect = getDropZone()?.getBoundingClientRect()
+    if (!rect) return
+    const over =
+      e.clientX >= rect.left && e.clientX <= rect.right && e.clientY >= rect.top && e.clientY <= rect.bottom
+    getDropZone()?.classList.toggle("item-drop-active", over)
+  }
+  const onPointerUp = (e) => {
+    if (!draggingRef.current) return
+    draggingRef.current = false
+    setDragging(false)
+    getDropZone()?.classList.remove("item-drop-active")
+    const moved = Math.hypot(e.clientX - startRef.current.x, e.clientY - startRef.current.y)
+    if (moved < 10) {
+      place()
+      return
+    }
+    const rect = getDropZone()?.getBoundingClientRect()
+    if (rect && e.clientX >= rect.left && e.clientX <= rect.right && e.clientY >= rect.top && e.clientY <= rect.bottom) {
+      place()
+    }
+  }
+  // ポインタキャプチャが途中で失われた場合(ウィンドウ外でボタンを離した等)でも
+  // ドラッグ中表示や机のハイライトが残り続けないようにする保険。
+  const onPointerCancel = () => {
+    draggingRef.current = false
+    setDragging(false)
+    getDropZone()?.classList.remove("item-drop-active")
+  }
+
   return (
     <div
-      className="shelf-slot"
+      className={"shelf-slot" + (draggable ? " shelf-slot-draggable" : "")}
       style={{ left: `${x}%`, top: `${y}%` }}
       onMouseEnter={() => setHover(true)}
       onMouseLeave={() => setHover(false)}
+      onPointerDown={onPointerDown}
+      onPointerMove={onPointerMove}
+      onPointerUp={onPointerUp}
+      onPointerCancel={onPointerCancel}
+      onLostPointerCapture={onPointerCancel}
     >
       {item.image && !failed ? (
         <img
@@ -621,7 +703,7 @@ function ShelfSlot({ item, x, y }) {
       ) : (
         <div className="shelf-slot-placeholder" aria-hidden="true" />
       )}
-      {hover && (
+      {hover && !dragging && (
         <div className="shelf-tooltip">
           <p className="shelf-tooltip-name">{item.name}</p>
           <p className="shelf-tooltip-text">買取価格: {item.paidPrice ?? 0}G</p>
@@ -633,22 +715,33 @@ function ShelfSlot({ item, x, y }) {
           )}
         </div>
       )}
+      {dragging && (
+        <img
+          className="shelf-drag-clone"
+          style={{ left: clonePos.x, top: clonePos.y }}
+          src={assetUrl(`assets/items/${item.image}.png`)}
+          alt=""
+        />
+      )}
     </div>
   )
 }
 
-export function ShelfDisplay() {
+export function ShelfDisplay({ draggable }) {
   const inventory = useGameStore((s) => s.inventory)
-  if (inventory.length === 0) return null
+  const offeredItemId = useGameStore((s) => s.offeredItemId)
+  // 査定机に今置いている品は、棚とデスクの二重表示にならないよう棚側から外す。
+  const visible = inventory.filter((i) => i.invId !== offeredItemId)
+  if (visible.length === 0) return null
   // 木箱の天面は3つ分しかない。入りきらない分は場所を奪い合わせず、
   // 直近に仕入れた4点だけを置き、残りは控えめな「+N」の札でまとめる。
-  const shown = inventory.slice(-CRATE_SLOTS.length)
-  const overflowCount = inventory.length - shown.length
+  const shown = visible.slice(-CRATE_SLOTS.length)
+  const overflowCount = visible.length - shown.length
   const lastSlot = CRATE_SLOTS[CRATE_SLOTS.length - 1]
   return (
     <div className="shelf-display" aria-hidden="false">
       {shown.map((item, i) => (
-        <ShelfSlot key={item.invId} item={item} x={CRATE_SLOTS[i].x} y={CRATE_SLOTS[i].y} />
+        <ShelfSlot key={item.invId} item={item} x={CRATE_SLOTS[i].x} y={CRATE_SLOTS[i].y} draggable={draggable} />
       ))}
       {overflowCount > 0 && (
         <span className="shelf-overflow" style={{ left: `${lastSlot.x + 5}%`, top: `${lastSlot.y}%` }}>

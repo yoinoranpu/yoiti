@@ -1,6 +1,6 @@
 import { useGameStore, OWNER } from "../store/gameStore"
 import { REFERENCE } from "../data/days"
-import { InfoOverlay, ScenePanel, DialogueLog, ResultPanel, IconLabel, InspectionDesk, assetUrl } from "./panels"
+import { InfoOverlay, ScenePanel, DialogueLog, ResultPanel, IconLabel, InspectionDesk, CATEGORY_LABELS, assetUrl } from "./panels"
 
 function TopBar() {
   const day = useGameStore((s) => s.day)
@@ -31,13 +31,20 @@ function TopBar() {
   )
 }
 
-function SellDialoguePanel({ item }) {
+// buyerSlot: その夜の査定キューの1枠(元々は「この客にはこの品」という
+// 1:1の組だったが、今は買い手の情報(name/wantsCategory等)の置き場として
+// 使うだけ。実際に売る品は棚からドラッグして置いたoffered(currentOfferedItem)。
+function SellDialoguePanel({ buyerSlot }) {
   const engaged = useGameStore((s) => s.engaged)
   const appraisalResolution = useGameStore((s) => s.appraisalResolution)
   const continueAppraisal = useGameStore((s) => s.continueAppraisal)
   const sellAtValue = useGameStore((s) => s.sellAtValue)
   const tryHaggleUp = useGameStore((s) => s.tryHaggleUp)
   const skipSell = useGameStore((s) => s.skipSell)
+  const offered = useGameStore((s) => s.currentOfferedItem())
+  const buyer = buyerSlot.buyer
+
+  const wantsLabel = buyer.wantsCategory ? CATEGORY_LABELS[buyer.wantsCategory] ?? buyer.wantsCategory : null
 
   return (
     <div className="dialogue">
@@ -49,20 +56,28 @@ function SellDialoguePanel({ item }) {
         </div>
       ) : (
         <div className="actions">
-          <InspectionDesk item={item} itemKind={appraisalResolution?.kind} />
+          {wantsLabel && !appraisalResolution && <p className="wants-label">お探しの品: {wantsLabel}</p>}
+          <InspectionDesk item={offered} itemKind={appraisalResolution?.kind} />
 
           <div className="action-group decision-plate">
             {appraisalResolution ? (
               <ResultPanel resolution={appraisalResolution} onContinue={continueAppraisal} />
-            ) : (
+            ) : offered ? (
               <>
-                <p className="action-group-label">十分調べた。さて、どうする？</p>
+                <p className="action-group-label">この値段で渡す? それとも――</p>
                 <button className="btn btn-trade" onClick={sellAtValue}>
-                  <IconLabel icon="icon-buy">言い値で売る({item.trueValue}G)</IconLabel>
+                  <IconLabel icon="icon-buy">言い値で売る({offered.trueValue}G)</IconLabel>
                 </button>
                 <button className="btn btn-trade" onClick={tryHaggleUp}>
-                  <IconLabel icon="icon-haggle">高く売れないか粘る({item.haggleValue}G)</IconLabel>
+                  <IconLabel icon="icon-haggle">高く売れないか粘る({offered.haggleValue}G)</IconLabel>
                 </button>
+                <button className="btn btn-trade" onClick={skipSell}>
+                  <IconLabel icon="icon-refuse">やめておく</IconLabel>
+                </button>
+              </>
+            ) : (
+              <>
+                <p className="action-group-label">棚から品物をドラッグして渡そう。</p>
                 <button className="btn btn-trade" onClick={skipSell}>
                   <IconLabel icon="icon-refuse">やめておく</IconLabel>
                 </button>
@@ -143,10 +158,12 @@ export default function AppraisalScreen() {
             backdropImage="shop-room-back"
             illustrationClues={item.buyer.illustrationClues}
             leaving={!!appraisalResolution}
+            showShelf
+            shelfDraggable
           />
           <InfoOverlay reference={REFERENCE} />
         </div>
-        <SellDialoguePanel item={item} />
+        <SellDialoguePanel buyerSlot={item} />
       </div>
     )
   }
