@@ -45,6 +45,20 @@ const encounterStateFor = (actor, soulAutoReveal, requestLine) => {
 const nightRequestLine = (customer) => `この${customer.item.name}を買い取ってほしいんだが……`
 const appraisalRequestLine = (item) => `そこの${item.name}を売ってもらえないか？`
 
+// その日の査定がすべて終わったら、客と同じ「話しかけて向き合う」UIで
+// 元締めが上納金を取り立てに来る。買い手側のencounterStateForと違い
+// 会話トピックは持たせず、第一声だけを置く最小構成。
+export const OWNER = { name: "元締め", image: "owner" }
+const ownerRequestLine = (quota) => `${quota}G、耳を揃えて用意はできているな？`
+const ownerEncounterState = (quota) => ({
+  inspection: [],
+  dialogueLog: [{ speaker: OWNER.name, text: ownerRequestLine(quota) }],
+  usedTopics: [],
+  viewedClues: [],
+  revealedObservations: [],
+  engaged: false,
+})
+
 // 判別機を失った後は「共鳴」で気づく。企画書9章の通り、魂反応がある時だけ
 // 青白い文字が浮かび上がる演出にする(判別機の針が動く描写とは分けている)。
 const soulRevealFor = (customer, hasDetector) => {
@@ -199,7 +213,7 @@ export const useGameStore = create((set, get) => ({
         gold: state.gold - customer.item.lowballPrice,
         inventory: [...state.inventory, itemToInventory(customer.item, state.revealedObservations.length, customer.item.lowballPrice)],
         dialogueLog: [...state.dialogueLog, { speaker: customer.name, text: customer.negotiation.accept }],
-        lastResolution: { goldDelta: -customer.item.lowballPrice },
+        lastResolution: { goldDelta: -customer.item.lowballPrice, kind: "acquired" },
         screen: "resolved",
         ...applyFavor(state, customer.resolution.buyFull?.favor),
       }))
@@ -222,7 +236,7 @@ export const useGameStore = create((set, get) => ({
       gold: state.gold - customer.item.askPrice,
       inventory: [...state.inventory, itemToInventory(customer.item, state.revealedObservations.length, customer.item.askPrice)],
       dialogueLog: [...state.dialogueLog, { speaker: "narration", text: customer.resolution.buyFull.text }],
-      lastResolution: { goldDelta: -customer.item.askPrice },
+      lastResolution: { goldDelta: -customer.item.askPrice, kind: "acquired" },
       screen: "resolved",
       ...applyFavor(state, customer.resolution.buyFull.favor),
     }))
@@ -232,7 +246,7 @@ export const useGameStore = create((set, get) => ({
     const customer = get().currentCustomer()
     set((state) => ({
       dialogueLog: [...state.dialogueLog, { speaker: "narration", text: customer.resolution.refuse.text }],
-      lastResolution: { goldDelta: 0 },
+      lastResolution: { goldDelta: 0, kind: "declined" },
       screen: "resolved",
       ...applyFavor(state, customer.resolution.refuse.favor),
     }))
@@ -252,7 +266,7 @@ export const useGameStore = create((set, get) => ({
     set((state) => ({
       gold: state.gold + resolution.goldDelta,
       dialogueLog: [...state.dialogueLog, { speaker: "narration", text: resolution.text }],
-      lastResolution: { goldDelta: resolution.goldDelta },
+      lastResolution: { goldDelta: resolution.goldDelta, kind: "declined" },
       screen: "resolved",
       ...applyFavor(state, resolution.favor),
     }))
@@ -272,7 +286,7 @@ export const useGameStore = create((set, get) => ({
         appraisalResolution: null,
         ...(firstItem
           ? encounterStateFor(firstItem.buyer, null, appraisalRequestLine(firstItem))
-          : { inspection: [], dialogueLog: [], usedTopics: [], revealedObservations: [], engaged: false }),
+          : ownerEncounterState(state.quota)),
       })
       return
     }
@@ -298,7 +312,7 @@ export const useGameStore = create((set, get) => ({
         ...state.dialogueLog,
         { speaker: "narration", text: `${item.name}は言い値の${item.trueValue}Gで引き取られた。` },
       ],
-      appraisalResolution: { goldDelta: item.trueValue },
+      appraisalResolution: { goldDelta: item.trueValue, kind: "acquired" },
     }))
   },
 
@@ -313,7 +327,7 @@ export const useGameStore = create((set, get) => ({
           ...state.dialogueLog,
           { speaker: item.buyer.name, text: "「そこまで背負うつもりはない」" },
         ],
-        appraisalResolution: { goldDelta: 0 },
+        appraisalResolution: { goldDelta: 0, kind: "declined" },
       }))
       return
     }
@@ -324,7 +338,7 @@ export const useGameStore = create((set, get) => ({
         ...state.dialogueLog,
         { speaker: "narration", text: `粘って${item.name}を${item.haggleValue}Gまで引き上げさせた。` },
       ],
-      appraisalResolution: { goldDelta: item.haggleValue },
+      appraisalResolution: { goldDelta: item.haggleValue, kind: "acquired" },
     }))
   },
 
@@ -337,7 +351,7 @@ export const useGameStore = create((set, get) => ({
         ...state.dialogueLog,
         { speaker: "narration", text: `${item.name}は今夜は売らずに懐にしまった。` },
       ],
-      appraisalResolution: { goldDelta: 0 },
+      appraisalResolution: { goldDelta: 0, kind: "declined" },
     }))
   },
 
@@ -347,7 +361,7 @@ export const useGameStore = create((set, get) => ({
     set({
       appraisalIndex: nextIndex,
       appraisalResolution: null,
-      ...(nextItem ? encounterStateFor(nextItem.buyer, null, appraisalRequestLine(nextItem)) : {}),
+      ...(nextItem ? encounterStateFor(nextItem.buyer, null, appraisalRequestLine(nextItem)) : ownerEncounterState(get().quota)),
     })
   },
 

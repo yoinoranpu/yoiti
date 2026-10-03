@@ -100,7 +100,7 @@ export function InfoOverlay({ reference }) {
 
   return (
     <>
-      <div className="info-rail">
+      <div className={"info-rail" + (active ? " info-rail-drawer-open" : "")}>
         {INFO_TABS.map((tab) => (
           <button
             key={tab.key}
@@ -223,9 +223,28 @@ function SpeechBubble() {
   )
 }
 
-// シーンは奥から手前へ: 背景 → キャラ、の順で重ねる。商品の情報は鑑定机に
-// 一本化したので、カウンター越しに商品カードを浮かべる表現は廃止した。
-export function ScenePanel({ actorName, actorImage, topics, engaged, onEngage, illustrationClues, backdropImage }) {
+// シーンは奥から手前へ: 背景 → 在庫(木箱の上) → キャラ、の順で重ねる。商品の
+// 情報は鑑定机に一本化したので、カウンター越しに商品カードを浮かべる表現は
+// 廃止した。
+// leaving: 判断が確定し(結果パネル表示中)、客が立ち去っていく演出を見せる段階か。
+// showShelf: 背景に買い取り済みの在庫を乗せるか(買い側の店内シーンだけでtrue)。
+// ShelfDisplayはscene-backdropと同じ.scene内の座標空間(%指定)に合わせる
+// 必要があるため、night-body側の兄弟要素としてではなくここで描画する
+// (.sceneはmin-heightにより親より縦長になり下側がクリップされることがあるが、
+// 背景画像自体もそこで一緒にクリップされるので、同じ座標系に置けば常に
+// 背景の木箱と一致して見える)。
+export function ScenePanel({
+  actorName,
+  actorImage,
+  topics,
+  engaged,
+  onEngage,
+  illustrationClues,
+  backdropImage,
+  leaving,
+  showShelf,
+  engageHint = "客をクリックして話を聞こう",
+}) {
   const [talkOpen, setTalkOpen] = useState(false)
   useEffect(() => setTalkOpen(false), [actorName])
 
@@ -234,6 +253,7 @@ export function ScenePanel({ actorName, actorImage, topics, engaged, onEngage, i
     : undefined
 
   const handleActorClick = () => {
+    if (leaving) return
     if (!engaged) {
       onEngage?.()
       return
@@ -244,13 +264,18 @@ export function ScenePanel({ actorName, actorImage, topics, engaged, onEngage, i
   return (
     <div className="scene">
       <div className="scene-backdrop" style={backdropStyle} />
+      {showShelf && <ShelfDisplay />}
       <div
-        className={"scene-actor" + (topics || !engaged ? " scene-actor-clickable" : "")}
+        className={
+          "scene-actor" +
+          (!leaving && (topics || !engaged) ? " scene-actor-clickable" : "") +
+          (leaving ? " scene-actor-exit" : "")
+        }
         onClick={handleActorClick}
       >
         <CharacterFigure key={actorImage || actorName} actorName={actorName} image={actorImage} />
         <IllustrationHotspots illustrationClues={illustrationClues} />
-        {engaged && topics && !talkOpen && (
+        {engaged && topics && !talkOpen && !leaving && (
           <div className="talk-hint-bubble" aria-hidden="true">
             <img className="talk-hint-icon" src={assetUrl("assets/icons/icon-talk.png")} alt="" />
           </div>
@@ -269,7 +294,7 @@ export function ScenePanel({ actorName, actorImage, topics, engaged, onEngage, i
       <div className="scene-dialogue-anchor">
         <p className="scene-name">{actorName}</p>
         <SpeechBubble />
-        {!engaged && <p className="engage-hint">客をクリックして話を聞こう</p>}
+        {!engaged && <p className="engage-hint">{engageHint}</p>}
       </div>
     </div>
   )
@@ -339,7 +364,9 @@ const layoutObservations = (observations, itemSpanX, itemSpanY) => {
 // 画面下半分そのものを鑑定机にする。商品(左)・そこから伸びる観察ノード・
 // 魂判別機(右、hasDetectorの日だけ)を1つの机としてまとめて常時表示する。
 // 「鑑定台に置く」という前段操作は廃止し、客と対面した時点から調べられる。
-export function InspectionDesk({ item, hasDetector, soulCheckText }) {
+// itemKind: 判断確定後の結果("acquired"=買い取った/売れた → 商品が手前に
+// 迫り出して消える, "declined"=断った・不成立 → 商品はそのまま、客だけ去る)。
+export function InspectionDesk({ item, hasDetector, soulCheckText, itemKind }) {
   const revealedObservations = useGameStore((s) => s.revealedObservations)
   const revealObservation = useGameStore((s) => s.revealObservation)
   const usedTopics = useGameStore((s) => s.usedTopics)
@@ -401,7 +428,7 @@ export function InspectionDesk({ item, hasDetector, soulCheckText }) {
           <div ref={itemDropRef} className="inspection-desk-item-dropzone">
             {item.image && !failed ? (
               <img
-                className="inspection-desk-item-img"
+                className={"inspection-desk-item-img" + (itemKind === "acquired" ? " item-acquired" : "")}
                 src={assetUrl(`assets/items/${item.image}.png`)}
                 alt={item.name}
                 onError={() => setFailed(true)}
@@ -559,15 +586,28 @@ export function SoulDetectorTool({ dropZoneRef, soulCheckText }) {
   )
 }
 
-// 棚に並ぶ買い取り済みの在庫。背景を単なる飾りにせず、7日間営業している
+// 買い取り済みの在庫を、背景画(shop-room-back.png)に描かれた木箱の天面に
+// 実際に乗っているように見せる。背景を単なる飾りにせず、7日間営業している
 // 感覚を出す。ただし「観察したことしか分からない」原則を守るため、
 // 魂反応など未確認の秘匿情報はここには出さない(名前と推定価値のみ)。
-function ShelfSlot({ item }) {
+// 座標は実際に描画された.scene内に%グリッドのオーバーレイを重ねたスクリー
+// ンショットを撮って天面の位置を実測した値(机の座標系は.sceneの内部%と
+// 一致するため、画像ファイル単体のピクセル比率から計算すると
+// background-size:coverの実際の表示結果とずれることがあり、生画像からの
+// 逆算ではなく実測に頼っている)。
+const CRATE_SLOTS = [
+  { x: 68.0, y: 82.0 },
+  { x: 72.0, y: 82.0 },
+  { x: 80.0, y: 74.0 },
+]
+
+function ShelfSlot({ item, x, y }) {
   const [hover, setHover] = useState(false)
   const [failed, setFailed] = useState(false)
   return (
     <div
       className="shelf-slot"
+      style={{ left: `${x}%`, top: `${y}%` }}
       onMouseEnter={() => setHover(true)}
       onMouseLeave={() => setHover(false)}
     >
@@ -600,11 +640,21 @@ function ShelfSlot({ item }) {
 export function ShelfDisplay() {
   const inventory = useGameStore((s) => s.inventory)
   if (inventory.length === 0) return null
+  // 木箱の天面は3つ分しかない。入りきらない分は場所を奪い合わせず、
+  // 直近に仕入れた4点だけを置き、残りは控えめな「+N」の札でまとめる。
+  const shown = inventory.slice(-CRATE_SLOTS.length)
+  const overflowCount = inventory.length - shown.length
+  const lastSlot = CRATE_SLOTS[CRATE_SLOTS.length - 1]
   return (
-    <div className="shelf-display">
-      {inventory.map((item) => (
-        <ShelfSlot key={item.invId} item={item} />
+    <div className="shelf-display" aria-hidden="false">
+      {shown.map((item, i) => (
+        <ShelfSlot key={item.invId} item={item} x={CRATE_SLOTS[i].x} y={CRATE_SLOTS[i].y} />
       ))}
+      {overflowCount > 0 && (
+        <span className="shelf-overflow" style={{ left: `${lastSlot.x + 5}%`, top: `${lastSlot.y}%` }}>
+          +{overflowCount}
+        </span>
+      )}
     </div>
   )
 }

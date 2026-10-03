@@ -170,6 +170,21 @@ guard's uniform collar visible underneath, glancing sideways nervously,
 short practical haircut.
 ```
 
+### `owner.png` — 元締め(上納金の取り立て役)
+**(2026-10-04追加: 日送り時の上納金UIを、客と同じ「話しかけて向き合う」演出に
+変更したことに伴い新規発注。まだ未納品のため、現状は`CharacterFigure`の
+フォールバック(頭文字だけの丸プレースホルダー)で表示されている。)**
+```
+Pixel art, no anti-aliasing, crisp pixel edges. Bust-up portrait,
+three-quarter view, on a flat solid chroma-key green background
+(#00ff00), no gradients, no texture — easy to cut out. Warm amber
+highlight #c9a24a for any light source on the character.
+An intimidating middle-aged to elderly man who runs the night market's
+underworld side, heavyset and imposing, expensive but dark clothing worn
+with an air of quiet authority, a cold appraising stare, the look of
+someone used to being obeyed without raising his voice.
+```
+
 ### `c1-buyer-georg.png` — ゲオルグ(片手剣の買い手)
 ```
 Pixel art, no anti-aliasing, crisp pixel edges. Bust-up portrait,

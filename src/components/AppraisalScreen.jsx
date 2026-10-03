@@ -1,4 +1,4 @@
-import { useGameStore } from "../store/gameStore"
+import { useGameStore, OWNER } from "../store/gameStore"
 import { REFERENCE } from "../data/days"
 import { InfoOverlay, ScenePanel, DialogueLog, ResultPanel, IconLabel, InspectionDesk, assetUrl } from "./panels"
 
@@ -43,29 +43,68 @@ function SellDialoguePanel({ item }) {
     <div className="dialogue">
       <DialogueLog />
 
-      {appraisalResolution ? (
-        <div className="dialogue-center">
-          <ResultPanel resolution={appraisalResolution} onContinue={continueAppraisal} />
-        </div>
-      ) : !engaged ? (
+      {!engaged ? (
         <div className="dialogue-center">
           <p className="engage-hint">買い手をクリックして話を聞こう。</p>
         </div>
       ) : (
         <div className="actions">
-          <InspectionDesk item={item} />
+          <InspectionDesk item={item} itemKind={appraisalResolution?.kind} />
 
           <div className="action-group decision-plate">
-            <p className="action-group-label">十分調べた。さて、どうする？</p>
-            <button className="btn btn-trade" onClick={sellAtValue}>
-              <IconLabel icon="icon-buy">言い値で売る({item.trueValue}G)</IconLabel>
-            </button>
-            <button className="btn btn-trade" onClick={tryHaggleUp}>
-              <IconLabel icon="icon-haggle">高く売れないか粘る({item.haggleValue}G)</IconLabel>
-            </button>
-            <button className="btn btn-trade" onClick={skipSell}>
-              <IconLabel icon="icon-refuse">やめておく</IconLabel>
-            </button>
+            {appraisalResolution ? (
+              <ResultPanel resolution={appraisalResolution} onContinue={continueAppraisal} />
+            ) : (
+              <>
+                <p className="action-group-label">十分調べた。さて、どうする？</p>
+                <button className="btn btn-trade" onClick={sellAtValue}>
+                  <IconLabel icon="icon-buy">言い値で売る({item.trueValue}G)</IconLabel>
+                </button>
+                <button className="btn btn-trade" onClick={tryHaggleUp}>
+                  <IconLabel icon="icon-haggle">高く売れないか粘る({item.haggleValue}G)</IconLabel>
+                </button>
+                <button className="btn btn-trade" onClick={skipSell}>
+                  <IconLabel icon="icon-refuse">やめておく</IconLabel>
+                </button>
+              </>
+            )}
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}
+
+// その日の査定がすべて終わった後、客と同じ「話しかけて向き合う」UIで
+// 元締めが上納金を取り立てに来る場面。トピックは持たないので、話しかけたら
+// すぐ払う/店じまいの二択だけを出す(買い取り・査定の二択UIより簡素)。
+function OwnerPanel({ day, gold, quota, remaining, forcedEvent, engaged, endDay, triggerRobbery }) {
+  return (
+    <div className="dialogue">
+      <DialogueLog />
+
+      {!engaged ? (
+        <div className="dialogue-center">
+          <p className="engage-hint">元締めをクリックして話を聞こう。</p>
+        </div>
+      ) : (
+        <div className="actions">
+          <div className="dialogue-center">
+            <div className="action-group decision-plate">
+              <p className="action-group-label">
+                {day}日目、夜が明ける前に。所持金 {gold}G / 上納金 {quota}G
+                {remaining > 0 && `(売らなかった品が${remaining}点、店に残っている)`}
+              </p>
+              {forcedEvent === "robbery" ? (
+                <button className="btn btn-trade" onClick={triggerRobbery}>
+                  <IconLabel icon="icon-refuse">店じまいの支度をする</IconLabel>
+                </button>
+              ) : (
+                <button className="btn btn-trade" onClick={endDay}>
+                  <IconLabel icon="icon-buy">上納金を納める({quota}G)</IconLabel>
+                </button>
+              )}
+            </div>
           </div>
         </div>
       )}
@@ -85,6 +124,7 @@ export default function AppraisalScreen() {
   const triggerRobbery = useGameStore((s) => s.triggerRobbery)
   const engaged = useGameStore((s) => s.engaged)
   const engageCustomer = useGameStore((s) => s.engageCustomer)
+  const appraisalResolution = useGameStore((s) => s.appraisalResolution)
 
   const done = appraisalIndex >= appraisalQueue.length
 
@@ -102,6 +142,7 @@ export default function AppraisalScreen() {
             onEngage={engageCustomer}
             backdropImage="shop-room-back"
             illustrationClues={item.buyer.illustrationClues}
+            leaving={!!appraisalResolution}
           />
           <InfoOverlay reference={REFERENCE} />
         </div>
@@ -111,26 +152,30 @@ export default function AppraisalScreen() {
   }
 
   return (
-    <div className="screen screen-center">
-      <h1 className="title">{day}日目、夜が明ける前に</h1>
-      <p className="subtitle">
-        {appraisalQueue.length === 0 ? "今夜査定する品はなかった。" : "査定できるだけの品を捌いた。"}
-      </p>
-      {remaining > 0 && (
-        <p className="subtitle">売らなかった品が{remaining}点、店に残っている。翌日以降また売れる。</p>
-      )}
-      <p>
-        所持金 {gold}G / 上納金 {quota}G
-      </p>
-      {forcedEvent === "robbery" ? (
-        <button className="btn btn-primary" onClick={triggerRobbery}>
-          店じまいの支度をする
-        </button>
-      ) : (
-        <button className="btn btn-primary" onClick={endDay}>
-          上納金を納める
-        </button>
-      )}
+    <div className="night">
+      <TopBar />
+      <div className="night-body">
+        <ScenePanel
+          actorName={OWNER.name}
+          actorImage={OWNER.image}
+          topics={null}
+          engaged={engaged}
+          onEngage={engageCustomer}
+          backdropImage="shop-room-back"
+          engageHint="元締めをクリックして話を聞こう"
+        />
+        <InfoOverlay reference={REFERENCE} />
+      </div>
+      <OwnerPanel
+        day={day}
+        gold={gold}
+        quota={quota}
+        remaining={remaining}
+        forcedEvent={forcedEvent}
+        engaged={engaged}
+        endDay={endDay}
+        triggerRobbery={triggerRobbery}
+      />
     </div>
   )
 }
