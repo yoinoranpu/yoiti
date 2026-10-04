@@ -11,7 +11,9 @@ let uid = 0
 const nextId = (prefix) => `${prefix}-${uid++}`
 
 // 名前だけの軽い客を組み立てるヘルパー(会話の主役ではない、頭数のための客)。
-function fillerCustomer({ name, guilty = false, arrival, itemName, price, itemDesc, soul, image, itemImage }) {
+// category: 査定画面で「同じ用途の品なら代用がきく」判定に使う。省略時は
+// "household"(日用品)扱い — フィラー客の持ち物はおおむね生活雑貨のため。
+function fillerCustomer({ name, guilty = false, arrival, itemName, price, itemDesc, soul, image, itemImage, category = "household" }) {
   const id = nextId("filler")
   const lowballPrice = Math.round(price * 0.6)
   const trueValue = Math.round(price * (soul ? 1.8 : 1.4))
@@ -33,11 +35,15 @@ function fillerCustomer({ name, guilty = false, arrival, itemName, price, itemDe
       description: itemDesc,
       image: itemImage || "item-generic-tool",
       hasSoul: !!soul,
+      category,
       hiddenObservations: [
         { id: `${id}-i1`, label: "状態", text: "とくに変わった点は見当たらない。" },
       ],
       buyer: {
         name: `${name}の買い手`,
+        // wantsCategory: フィラーの買い手は「ちょっと入り用でね」と漠然としか
+        // 言わないので、持ち込まれた品と同じカテゴリを欲しがる設定にする。
+        wantsCategory: category,
         arrival: "少し遅れて、引き取りたいという客が現れる。",
         appearance: [{ id: `${id}-b-a1`, label: "様子", text: "特に変わった様子はない。" }],
         illustrationClues: [],
@@ -83,12 +89,15 @@ const oldMan = {
     description: "先代から譲り受けたという燭台。ろうの跡が古く、長く使われてきたことがわかる。",
     image: "item-candlestick",
     hasSoul: false,
+    category: "household",
     hiddenObservations: [
       { id: "d2-c1-i1", label: "底面", text: "底に、素人が直したらしい修理の跡がある。" },
     ],
     buyer: {
       name: "近所の女中",
       image: "generic-young-woman",
+      // wantsCategory: 「日用品を見に来ただけ」という台詞通り。
+      wantsCategory: "household",
       arrival: "近所の商家に仕える女中が、日用品を探しに立ち寄る。",
       appearance: [{ id: "d2-c1-b-a1", label: "様子", text: "急いでいる様子で、何度も外を気にしている。" }],
       illustrationClues: [],
@@ -132,12 +141,15 @@ const pushyPeddler = {
     description: "色鮮やかな織物。だが、この街ではよく見る量産品のようにも見える。",
     image: "item-fabric",
     hasSoul: false,
+    category: "fabric",
     hiddenObservations: [
       { id: "d2-c2-i1", label: "織りの目", text: "よく見ると織りの目が粗い。量産品にありがちな仕上がりだ。" },
     ],
     buyer: {
       name: "布地屋の主人",
       image: "generic-adult-man",
+      // wantsCategory: 布地屋なので織物しか求めていない。
+      wantsCategory: "fabric",
       arrival: "近所の布地屋の主人が、様子を見に立ち寄る。",
       appearance: [{ id: "d2-c2-b-a1", label: "様子", text: "商品を一目見て、値踏みするような顔をした。" }],
       illustrationClues: [],
@@ -178,12 +190,15 @@ const daronReturns = {
     description: "使い込まれた砥石。ダロン自身が使っていたものだという。",
     image: "item-generic-tool",
     hasSoul: false,
+    category: "tool",
     hiddenObservations: [
       { id: "d2-c3-i1", label: "減り方", text: "片側だけ大きくすり減っている。よほど頻繁に使っていたようだ。" },
     ],
     buyer: {
       name: "顔なじみの職人",
       image: "generic-adult-man",
+      // wantsCategory: 「手入れ用にちょうどいい」=道具なら何でも構わない。
+      wantsCategory: "tool",
       arrival: "顔なじみの職人が、道具を探しに立ち寄る。",
       appearance: [{ id: "d2-c3-b-a1", label: "様子", text: "特に変わった様子はない。" }],
       illustrationClues: [],
@@ -232,10 +247,12 @@ const contradictingRumor = {
     description: "手描きの古い地図。この街の周辺が描かれている。",
     image: "item-generic-book",
     hasSoul: false,
+    category: "book",
     hiddenObservations: [{ id: "d3-c2-i1", label: "書き込み", text: "端に、誰かの書き込みがいくつかある。" }],
     buyer: {
       name: "地図好きの学生",
       image: "generic-young-man",
+      wantsCategory: "book",
       arrival: "地図に目がないという学生が、覗き込むように入ってくる。",
       appearance: [{ id: "d3-c2-b-a1", label: "様子", text: "特に変わった様子はない。" }],
       illustrationClues: [],
@@ -268,6 +285,7 @@ const DAY3_CUSTOMERS = [
     itemDesc: "長年使われてきた裁縫道具一式。",
     image: "generic-adult-woman",
     itemImage: "item-generic-tool",
+    category: "tool",
   }),
   contradictingRumor,
   fillerCustomer({
@@ -279,6 +297,7 @@ const DAY3_CUSTOMERS = [
     itemDesc: "職人が使うような道具袋。",
     image: "generic-young-man",
     itemImage: "item-generic-tool",
+    category: "tool",
   }),
 ]
 
@@ -301,10 +320,12 @@ const oldRegular = {
     description: "長年使われてきた煙管。手入れは行き届いている。",
     image: "item-generic-tool",
     hasSoul: false,
+    category: "tool",
     hiddenObservations: [{ id: "d4-c1-i1", label: "刻印", text: "小さく、持ち主のものらしい印がある。" }],
     buyer: {
       name: "煙管好きの客",
       image: "generic-adult-man",
+      wantsCategory: "tool",
       arrival: "煙管を探していたという客が立ち寄る。",
       appearance: [{ id: "d4-c1-b-a1", label: "様子", text: "特に変わった様子はない。" }],
       illustrationClues: [],
@@ -344,12 +365,15 @@ const fortuneTeller = {
     description: "手擦れした札の束。その中の一枚だけ、やけに重く冷たい。",
     image: "item-fortune-cards",
     hasSoul: true,
+    category: "amulet",
     hiddenObservations: [
       { id: "d4-c2-i1", label: "一枚だけ", text: "一枚だけ他の札と紙質が違う。裏に小さな染みがある。" },
     ],
     buyer: {
       name: "静かな男",
       image: "d4-c2-buyer-quietman",
+      // wantsCategory: 占い師の遺品という曰く付きの品を集めている=護符・呪物枠。
+      wantsCategory: "amulet",
       arrival: "静かな身のこなしの男が、値踏みするように近づいてくる。",
       appearance: [{ id: "d4-c2-b-a1", label: "様子", text: "終始、感情の読めない顔をしている。" }],
       illustrationClues: [],
@@ -418,12 +442,14 @@ const sisterMaren = {
     description: "使い込まれた祈祷書。とくに変わった様子はない。",
     image: "item-generic-book",
     hasSoul: false,
+    category: "book",
     hiddenObservations: [
       { id: "d5-c1-i1", label: "書き込み", text: "余白に几帳面な字で書き込みがある。教会関係者の書き方によく似ている。" },
     ],
     buyer: {
       name: "教会の関係者",
       image: "generic-adult-man",
+      wantsCategory: "book",
       arrival: "教会の関係者らしい人物が、古書を探しに立ち寄る。",
       appearance: [{ id: "d5-c1-b-a1", label: "様子", text: "特に変わった様子はない。" }],
       illustrationClues: [],
@@ -473,10 +499,12 @@ const sicklyMan = {
     description: "誰かの肖像が描かれた写し絵。目のあたりだけ妙に生々しい。",
     image: "item-portrait",
     hasSoul: true,
+    category: "portrait",
     hiddenObservations: [{ id: "d5-c2-i1", label: "裏側", text: "裏に、消されたような文字の跡がある。" }],
     buyer: {
       name: "無表情な客",
       image: "generic-adult-man",
+      wantsCategory: "portrait",
       arrival: "無表情な客が、値踏みするように近づいてくる。",
       appearance: [{ id: "d5-c2-b-a1", label: "様子", text: "特に変わった様子はない。" }],
       illustrationClues: [],
@@ -509,6 +537,7 @@ const DAY5_CUSTOMERS = [
     itemDesc: "細工の凝った櫛。",
     image: "generic-adult-woman",
     itemImage: "item-generic-jewelry",
+    category: "jewelry",
   }),
   fillerCustomer({
     name: "旅装の男",
@@ -519,6 +548,7 @@ const DAY5_CUSTOMERS = [
     itemDesc: "使い込まれた羅針盤。",
     image: "generic-young-man",
     itemImage: "item-generic-tool",
+    category: "tool",
   }),
 ]
 
@@ -541,12 +571,14 @@ const viktorsOffer = {
     description: "本来なら没収されるはずの品だという。ヴィクターの一存で、先にお前に回された。",
     image: "item-generic-jewelry",
     hasSoul: true,
+    category: "jewelry",
     hiddenObservations: [
       { id: "d6-c1-i1", label: "由来", text: "詳しい由来は語られない。ヴィクターも深くは触れなかった。" },
     ],
     buyer: {
       name: "裕福そうな客",
       image: "generic-adult-man",
+      wantsCategory: "jewelry",
       arrival: "身なりの良い客が、静かに入ってくる。",
       appearance: [{ id: "d6-c1-b-a1", label: "様子", text: "特に変わった様子はない。" }],
       illustrationClues: [],
@@ -596,10 +628,12 @@ const paleGirl = {
     description: "手作りらしい人形。目のあたりだけ妙に生々しい。",
     image: "item-doll",
     hasSoul: true,
+    category: "portrait",
     hiddenObservations: [{ id: "d6-c2-i1", label: "縫い目", text: "何度も縫い直された跡がある。大切にされてきたようだ。" }],
     buyer: {
       name: "人形collector風の男",
       image: "generic-adult-man",
+      wantsCategory: "portrait",
       arrival: "人形を集めているという男が、興味深げに近づいてくる。",
       appearance: [{ id: "d6-c2-b-a1", label: "様子", text: "特に変わった様子はない。" }],
       illustrationClues: [],
@@ -664,10 +698,12 @@ const daronsLastFavor = {
     description: "ダロンが後生大事に抱えていた品。今夜、初めて店に持ち込んだ。",
     image: "item-keepsake",
     hasSoul: true,
+    category: "portrait",
     hiddenObservations: [{ id: "d7-c1-i1", label: "刻まれた文字", text: "小さく、戦友の名前らしき文字が刻まれている。" }],
     buyer: {
       name: "無口な買い手",
       image: "generic-adult-man",
+      wantsCategory: "portrait",
       arrival: "無口な男が、値踏みするように近づいてくる。",
       appearance: [{ id: "d7-c1-b-a1", label: "様子", text: "特に変わった様子はない。" }],
       illustrationClues: [],
@@ -712,10 +748,12 @@ const lastYoungWoman = {
     description: "小さな指輪。内側に何か刻まれている。",
     image: "item-ring",
     hasSoul: true,
+    category: "jewelry",
     hiddenObservations: [{ id: "d7-c2-i1", label: "内側の刻印", text: "小さく、誰かのイニシャルらしき刻印がある。" }],
     buyer: {
       name: "初老の紳士",
       image: "generic-old-man",
+      wantsCategory: "jewelry",
       arrival: "初老の紳士が、丁寧な物腰で近づいてくる。",
       appearance: [{ id: "d7-c2-b-a1", label: "様子", text: "特に変わった様子はない。" }],
       illustrationClues: [],
@@ -748,6 +786,7 @@ const DAY7_CUSTOMERS = [
     itemDesc: "手書きの研究資料の束。",
     image: "generic-old-man",
     itemImage: "item-generic-book",
+    category: "book",
   }),
   fillerCustomer({
     name: "寡黙な職人",
@@ -759,6 +798,7 @@ const DAY7_CUSTOMERS = [
     soul: true,
     image: "generic-adult-man",
     itemImage: "item-generic-tool",
+    category: "tool",
   }),
 ]
 

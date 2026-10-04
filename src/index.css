@@ -782,6 +782,50 @@ button {
   padding: 0 1rem;
 }
 
+/* 査定机の上に在庫を並べて選ぶ(ドラッグではなくクリックで選択)。 */
+.inspection-desk-item-picker {
+  width: 320px;
+  height: 320px;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 0.6rem;
+  padding: 0 1rem;
+}
+
+.desk-pick-item {
+  position: relative;
+  width: 64px;
+  height: 64px;
+  flex-shrink: 0;
+  padding: 8px;
+  border: none;
+  border-radius: 0;
+  background: rgba(14, 11, 18, 0.55);
+  box-shadow: inset 2px 2px 0 rgba(0, 0, 0, 0.5), inset -2px -2px 0 var(--bevel-light);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.desk-pick-item:hover {
+  box-shadow: inset 2px 2px 0 rgba(0, 0, 0, 0.5), inset -2px -2px 0 var(--bevel-light), 0 0 0 2px var(--color-accent);
+}
+
+.desk-pick-item:active {
+  transform: translate(1px, 1px);
+}
+
+.desk-pick-item img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  image-rendering: pixelated;
+}
+
+
 /* 取引成立後、商品を手前(プレイヤー側)に迫り出させてから消す。結果の文章を
    読む間だけ少し静止させ(animation-delay)、その後に動かす。机自体は
    表示を続けたままにして「机は出しっぱなし」の見た目を保つ。 */
@@ -1229,28 +1273,6 @@ button {
   filter: drop-shadow(0 0 8px rgba(138, 95, 214, 0.9));
 }
 
-/* 査定画面: 棚の品物を机までドラッグできるようにする(魂判別機と同じ
-   ドラッグ操作感)。 */
-.shelf-slot-draggable {
-  cursor: grab;
-  touch-action: none;
-  user-select: none;
-}
-
-.shelf-slot-draggable:active {
-  cursor: grabbing;
-}
-
-.shelf-drag-clone {
-  position: fixed;
-  width: 42px;
-  height: 42px;
-  transform: translate(-50%, -50%);
-  image-rendering: pixelated;
-  pointer-events: none;
-  z-index: 999;
-  filter: drop-shadow(1px 2px 0 rgba(0, 0, 0, 0.7));
-}
 
 /* ドラッグ中、判別機の先端から商品へ伸びる魔力の光。 */
 .soul-beam {

@@ -33,7 +33,7 @@ function TopBar() {
 
 // buyerSlot: その夜の査定キューの1枠(元々は「この客にはこの品」という
 // 1:1の組だったが、今は買い手の情報(name/wantsCategory等)の置き場として
-// 使うだけ。実際に売る品は棚からドラッグして置いたoffered(currentOfferedItem)。
+// 使うだけ。実際に売る品は机の上で選んだoffered(currentOfferedItem)。
 function SellDialoguePanel({ buyerSlot }) {
   const engaged = useGameStore((s) => s.engaged)
   const appraisalResolution = useGameStore((s) => s.appraisalResolution)
@@ -42,6 +42,8 @@ function SellDialoguePanel({ buyerSlot }) {
   const tryHaggleUp = useGameStore((s) => s.tryHaggleUp)
   const skipSell = useGameStore((s) => s.skipSell)
   const offered = useGameStore((s) => s.currentOfferedItem())
+  const inventory = useGameStore((s) => s.inventory)
+  const placeItemOnDesk = useGameStore((s) => s.placeItemOnDesk)
   const buyer = buyerSlot.buyer
 
   const wantsLabel = buyer.wantsCategory ? CATEGORY_LABELS[buyer.wantsCategory] ?? buyer.wantsCategory : null
@@ -57,7 +59,12 @@ function SellDialoguePanel({ buyerSlot }) {
       ) : (
         <div className="actions">
           {wantsLabel && !appraisalResolution && <p className="wants-label">お探しの品: {wantsLabel}</p>}
-          <InspectionDesk item={offered} itemKind={appraisalResolution?.kind} />
+          <InspectionDesk
+            item={offered}
+            itemKind={appraisalResolution?.kind}
+            pickItems={!appraisalResolution ? inventory : null}
+            onPickItem={placeItemOnDesk}
+          />
 
           <div className="action-group decision-plate">
             {appraisalResolution ? (
@@ -77,7 +84,7 @@ function SellDialoguePanel({ buyerSlot }) {
               </>
             ) : (
               <>
-                <p className="action-group-label">棚から品物をドラッグして渡そう。</p>
+                <p className="action-group-label">机に並んだ在庫から選んで渡そう。</p>
                 <button className="btn btn-trade" onClick={skipSell}>
                   <IconLabel icon="icon-refuse">やめておく</IconLabel>
                 </button>
@@ -159,7 +166,6 @@ export default function AppraisalScreen() {
             illustrationClues={item.buyer.illustrationClues}
             leaving={!!appraisalResolution}
             showShelf
-            shelfDraggable
           />
           <InfoOverlay reference={REFERENCE} />
         </div>

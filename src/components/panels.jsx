@@ -243,7 +243,6 @@ export function ScenePanel({
   backdropImage,
   leaving,
   showShelf,
-  shelfDraggable,
   engageHint = "客をクリックして話を聞こう",
 }) {
   const [talkOpen, setTalkOpen] = useState(false)
@@ -265,7 +264,7 @@ export function ScenePanel({
   return (
     <div className="scene">
       <div className="scene-backdrop" style={backdropStyle} />
-      {showShelf && <ShelfDisplay draggable={shelfDraggable} />}
+      {showShelf && <ShelfDisplay />}
       <div
         className={
           "scene-actor" +
@@ -310,6 +309,8 @@ export const CATEGORY_LABELS = {
   book: "本・書類",
   household: "日用品",
   portrait: "肖像・人形",
+  tool: "道具",
+  fabric: "織物・布",
 }
 
 // 商品の各部位から線を伸ばした鑑定札。未鑑定は古い紙札風の「???」、
@@ -373,12 +374,43 @@ const layoutObservations = (observations, itemSpanX, itemSpanY) => {
 }
 
 
+// 査定机の上に並べて選ぶ在庫1点。ホバーで買取価格/推定価値を見られる
+// (棚のShelfSlotと同じ情報)。
+function DeskPickItem({ item, onPick }) {
+  const [hover, setHover] = useState(false)
+  const [failed, setFailed] = useState(false)
+  return (
+    <button
+      className="desk-pick-item"
+      onClick={onPick}
+      onMouseEnter={() => setHover(true)}
+      onMouseLeave={() => setHover(false)}
+    >
+      {item.image && !failed ? (
+        <img src={assetUrl(`assets/items/${item.image}.png`)} alt={item.name} onError={() => setFailed(true)} />
+      ) : (
+        <div className="shelf-slot-placeholder" aria-hidden="true" />
+      )}
+      {hover && (
+        <div className="shelf-tooltip">
+          <p className="shelf-tooltip-name">{item.name}</p>
+          <p className="shelf-tooltip-text">推定価値: {item.trueValue}G</p>
+        </div>
+      )}
+    </button>
+  )
+}
+
 // 画面下半分そのものを鑑定机にする。商品(左)・そこから伸びる観察ノード・
 // 魂判別機(右、hasDetectorの日だけ)を1つの机としてまとめて常時表示する。
 // 「鑑定台に置く」という前段操作は廃止し、客と対面した時点から調べられる。
 // itemKind: 判断確定後の結果("acquired"=買い取った/売れた → 商品が手前に
 // 迫り出して消える, "declined"=断った・不成立 → 商品はそのまま、客だけ去る)。
-export function InspectionDesk({ item, hasDetector, soulCheckText, itemKind }) {
+// pickItems/onPickItem: 査定(売却)画面専用。itemがまだ無い間、机の上に
+// 在庫を並べて直接選べるようにする(棚からドラッグさせる案はボツにした
+// — 売るときに机が空のまま使われない時間ができてしまうため、机そのものを
+// 「在庫から選ぶ場」にした)。
+export function InspectionDesk({ item, hasDetector, soulCheckText, itemKind, pickItems, onPickItem }) {
   const revealedObservations = useGameStore((s) => s.revealedObservations)
   const revealObservation = useGameStore((s) => s.revealObservation)
   const usedTopics = useGameStore((s) => s.usedTopics)
@@ -453,9 +485,15 @@ export function InspectionDesk({ item, hasDetector, soulCheckText, itemKind }) {
               ) : (
                 <div className="inspection-desk-item-placeholder" aria-hidden="true" />
               )
+            ) : pickItems && pickItems.length > 0 ? (
+              <div className="inspection-desk-item-picker">
+                {pickItems.map((pi) => (
+                  <DeskPickItem key={pi.invId} item={pi} onPick={() => onPickItem(pi.invId)} />
+                ))}
+              </div>
             ) : (
               <div className="inspection-desk-item-empty" aria-hidden="true">
-                <p>ここに品物を置く</p>
+                <p>{pickItems ? "渡せる在庫がない" : "ここに品物を置く"}</p>
               </div>
             )}
           </div>
@@ -623,75 +661,17 @@ const CRATE_SLOTS = [
   { x: 80.0, y: 74.0 },
 ]
 
-// draggable=true(査定/売却シーン)のときだけ、棚の品物を査定机の
-// ドロップゾーン(.inspection-desk-item-dropzone、DOM上は別の木の下にある)
-// へドラッグできるようにする。ScenePanelとDialoguePanelは兄弟同士で
-// refを共有できないため、魂判別機と違いdropZoneRefを受け取らず、
-// document.querySelectorで直接ドロップ先を探す(机は常に1つしか無い前提)。
-// ドラッグせずクリックしただけでも置けるようにする保険は他の道具と同じ。
-function ShelfSlot({ item, x, y, draggable }) {
+// 棚の品物1点。ホバーで買取価格/推定価値/鑑定済み件数を見せる(飾り用途、
+// 査定時の「売る品を選ぶ」操作は机の上(DeskPickItem)で行う)。
+function ShelfSlot({ item, x, y }) {
   const [hover, setHover] = useState(false)
   const [failed, setFailed] = useState(false)
-  const [dragging, setDragging] = useState(false)
-  const [clonePos, setClonePos] = useState({ x: 0, y: 0 })
-  const startRef = useRef({ x: 0, y: 0 })
-  const draggingRef = useRef(false)
-
-  const place = () => useGameStore.getState().placeItemOnDesk(item.invId)
-
-  const getDropZone = () => document.querySelector(".inspection-desk-item-dropzone")
-
-  const onPointerDown = (e) => {
-    if (!draggable) return
-    e.currentTarget.setPointerCapture(e.pointerId)
-    startRef.current = { x: e.clientX, y: e.clientY }
-    setClonePos({ x: e.clientX, y: e.clientY })
-    draggingRef.current = true
-    setDragging(true)
-  }
-  const onPointerMove = (e) => {
-    if (!draggingRef.current) return
-    setClonePos({ x: e.clientX, y: e.clientY })
-    const rect = getDropZone()?.getBoundingClientRect()
-    if (!rect) return
-    const over =
-      e.clientX >= rect.left && e.clientX <= rect.right && e.clientY >= rect.top && e.clientY <= rect.bottom
-    getDropZone()?.classList.toggle("item-drop-active", over)
-  }
-  const onPointerUp = (e) => {
-    if (!draggingRef.current) return
-    draggingRef.current = false
-    setDragging(false)
-    getDropZone()?.classList.remove("item-drop-active")
-    const moved = Math.hypot(e.clientX - startRef.current.x, e.clientY - startRef.current.y)
-    if (moved < 10) {
-      place()
-      return
-    }
-    const rect = getDropZone()?.getBoundingClientRect()
-    if (rect && e.clientX >= rect.left && e.clientX <= rect.right && e.clientY >= rect.top && e.clientY <= rect.bottom) {
-      place()
-    }
-  }
-  // ポインタキャプチャが途中で失われた場合(ウィンドウ外でボタンを離した等)でも
-  // ドラッグ中表示や机のハイライトが残り続けないようにする保険。
-  const onPointerCancel = () => {
-    draggingRef.current = false
-    setDragging(false)
-    getDropZone()?.classList.remove("item-drop-active")
-  }
-
   return (
     <div
-      className={"shelf-slot" + (draggable ? " shelf-slot-draggable" : "")}
+      className="shelf-slot"
       style={{ left: `${x}%`, top: `${y}%` }}
       onMouseEnter={() => setHover(true)}
       onMouseLeave={() => setHover(false)}
-      onPointerDown={onPointerDown}
-      onPointerMove={onPointerMove}
-      onPointerUp={onPointerUp}
-      onPointerCancel={onPointerCancel}
-      onLostPointerCapture={onPointerCancel}
     >
       {item.image && !failed ? (
         <img
@@ -703,7 +683,7 @@ function ShelfSlot({ item, x, y, draggable }) {
       ) : (
         <div className="shelf-slot-placeholder" aria-hidden="true" />
       )}
-      {hover && !dragging && (
+      {hover && (
         <div className="shelf-tooltip">
           <p className="shelf-tooltip-name">{item.name}</p>
           <p className="shelf-tooltip-text">買取価格: {item.paidPrice ?? 0}G</p>
@@ -715,19 +695,11 @@ function ShelfSlot({ item, x, y, draggable }) {
           )}
         </div>
       )}
-      {dragging && (
-        <img
-          className="shelf-drag-clone"
-          style={{ left: clonePos.x, top: clonePos.y }}
-          src={assetUrl(`assets/items/${item.image}.png`)}
-          alt=""
-        />
-      )}
     </div>
   )
 }
 
-export function ShelfDisplay({ draggable }) {
+export function ShelfDisplay() {
   const inventory = useGameStore((s) => s.inventory)
   const offeredItemId = useGameStore((s) => s.offeredItemId)
   // 査定机に今置いている品は、棚とデスクの二重表示にならないよう棚側から外す。
@@ -741,7 +713,7 @@ export function ShelfDisplay({ draggable }) {
   return (
     <div className="shelf-display" aria-hidden="false">
       {shown.map((item, i) => (
-        <ShelfSlot key={item.invId} item={item} x={CRATE_SLOTS[i].x} y={CRATE_SLOTS[i].y} draggable={draggable} />
+        <ShelfSlot key={item.invId} item={item} x={CRATE_SLOTS[i].x} y={CRATE_SLOTS[i].y} />
       ))}
       {overflowCount > 0 && (
         <span className="shelf-overflow" style={{ left: `${lastSlot.x + 5}%`, top: `${lastSlot.y}%` }}>
