@@ -13,10 +13,29 @@ const nextId = (prefix) => `${prefix}-${uid++}`
 // 名前だけの軽い客を組み立てるヘルパー(会話の主役ではない、頭数のための客)。
 // category: 査定画面で「同じ用途の品なら代用がきく」判定に使う。省略時は
 // "household"(日用品)扱い — フィラー客の持ち物はおおむね生活雑貨のため。
-function fillerCustomer({ name, guilty = false, arrival, itemName, price, itemDesc, soul, image, itemImage, category = "household" }) {
+// trueValueOverride/extraObservation/riskyResale: 「偽物・いわく付き品」を
+// 仕込むための拡張。trueValueOverrideで相場式を上書きして言い値との差を
+// 作り、extraObservationでその食い違いに気づける手がかりを足す。guiltyと
+// 組み合わせて「故意(guilty)」「無自覚(not guilty、交渉の余地なし)」を
+// 演出する。riskyResaleは再販時に買い手が気づくかどうかの運要素。
+function fillerCustomer({
+  name,
+  guilty = false,
+  arrival,
+  itemName,
+  price,
+  itemDesc,
+  soul,
+  image,
+  itemImage,
+  category = "household",
+  trueValueOverride,
+  extraObservation,
+  riskyResale = false,
+}) {
   const id = nextId("filler")
   const lowballPrice = Math.round(price * 0.6)
-  const trueValue = Math.round(price * (soul ? 1.8 : 1.4))
+  const trueValue = trueValueOverride ?? Math.round(price * (soul ? 1.8 : 1.4))
   const haggleValue = Math.round(trueValue * (soul ? 1.5 : 1.25))
   return {
     id,
@@ -36,8 +55,10 @@ function fillerCustomer({ name, guilty = false, arrival, itemName, price, itemDe
       image: itemImage || "item-generic-tool",
       hasSoul: !!soul,
       category,
+      riskyResale,
       hiddenObservations: [
         { id: `${id}-i1`, label: "状態", text: "とくに変わった点は見当たらない。" },
+        ...(extraObservation ? [{ id: `${id}-i2`, ...extraObservation }] : []),
       ],
       buyer: {
         name: `${name}の買い手`,
@@ -531,9 +552,12 @@ const sicklyMan = {
 const DAY5_CUSTOMERS = [
   sisterMaren,
   sicklyMan,
+  // 偽物(故意): 従者も連れず一人で、宝石に見える細工物を急いで手放そうと
+  // している。guilty:trueにして値切りには素直に応じる(本人もこれが
+  // ガラス細工だと分かっているので、早く手放したい側)。
   fillerCustomer({
     name: "身なりの良い婦人",
-    guilty: false,
+    guilty: true,
     arrival: "身なりの良い婦人が、従者を連れずに一人で入ってくる。",
     itemName: "宝飾のついた櫛",
     price: 32,
@@ -541,6 +565,9 @@ const DAY5_CUSTOMERS = [
     image: "generic-adult-woman",
     itemImage: "item-generic-jewelry",
     category: "jewelry",
+    trueValueOverride: 20,
+    extraObservation: { label: "宝石", text: "よく見ると、宝石の部分はガラス細工のようだ。本物の輝きではない。" },
+    riskyResale: true,
   }),
   fillerCustomer({
     name: "旅装の男",
@@ -660,6 +687,9 @@ const paleGirl = {
 const DAY6_CUSTOMERS = [
   viktorsOffer,
   paleGirl,
+  // 偽物(無自覚): 本人は本物の年代物だと信じて疑っていない(guilty:false
+  // のまま=値切りには一切応じない)。詰め直された形跡は観察しないと
+  // わからず、気づかず買うと高値掴みになる。
   fillerCustomer({
     name: "夜市の顔役らしい男",
     guilty: false,
@@ -669,6 +699,9 @@ const DAY6_CUSTOMERS = [
     itemDesc: "封の切られていない年代物の酒。",
     image: "generic-adult-man",
     itemImage: "item-generic-household",
+    trueValueOverride: 30,
+    extraObservation: { label: "封", text: "封の蝋が不自然に新しい。詰め直された形跡がある。" },
+    riskyResale: true,
   }),
   fillerCustomer({
     name: "落ち着いた老女",
@@ -780,6 +813,10 @@ const lastYoungWoman = {
 const DAY7_CUSTOMERS = [
   daronsLastFavor,
   lastYoungWoman,
+  // 偽物(無自覚・軽度): 学者自身は重要な研究だと信じている(guilty:false、
+  // 値切りには応じない)。実際はすでに知られた話をなぞっただけで、
+  // 言い値ほどの価値はない。他の偽物よりは食い違いが小さい「ちょっとした
+  // 思い込み」程度の設定。
   fillerCustomer({
     name: "旅の学者",
     guilty: false,
@@ -790,6 +827,9 @@ const DAY7_CUSTOMERS = [
     image: "generic-old-man",
     itemImage: "item-generic-book",
     category: "book",
+    trueValueOverride: 33,
+    extraObservation: { label: "内容", text: "よく読むと、すでに知られている話をなぞっているだけのようだ。" },
+    riskyResale: true,
   }),
   fillerCustomer({
     name: "寡黙な職人",
@@ -814,12 +854,17 @@ export { REFERENCE, START_GOLD }
 // 品は必ず粘って高く売れる」というルールを正しく使い切った「賢い」プレイで
 // 実測した所持金推移は 56/23/(強盗で0)/8/10/43/+158。Day4・Day5が
 // 綱渡りだったため、両日だけ少し下げて緩和した(元は70/90)。
+// 2026-10-05追記: Day5(婦人の櫛)・Day6(顔役の酒、結局「断る」が最善手に
+// なった)に偽物/再販リスクを仕込んだ結果、両日の黒字が+3G/+2Gまで
+// 縮んでしまった(再販運が一度悪いだけで赤字に転ぶ水準)。
+// 「最善を尽くせば詰まない」方針を守るため、Day5を82→65、Day6を110→88に
+// 再調整した(実測値: Day5+3G→見込み+20G程度、Day6+2G→見込み+24G程度)。
 export const DAYS = [
   { day: 1, quota: 60, hasDetector: true, forcedEvent: null, customers: expandDayObservations(DAY1_CUSTOMERS, 99) },
   { day: 2, quota: 75, hasDetector: true, forcedEvent: null, customers: expandDayObservations(DAY2_CUSTOMERS, 5) },
   { day: 3, quota: 80, hasDetector: true, forcedEvent: "robbery", customers: expandDayObservations(DAY3_CUSTOMERS, 5) },
   { day: 4, quota: 62, hasDetector: false, forcedEvent: null, customers: expandDayObservations(DAY4_CUSTOMERS, 4) },
-  { day: 5, quota: 82, hasDetector: false, forcedEvent: null, customers: expandDayObservations(DAY5_CUSTOMERS, 4) },
-  { day: 6, quota: 110, hasDetector: false, forcedEvent: null, customers: expandDayObservations(DAY6_CUSTOMERS, 4) },
+  { day: 5, quota: 65, hasDetector: false, forcedEvent: null, customers: expandDayObservations(DAY5_CUSTOMERS, 4) },
+  { day: 6, quota: 88, hasDetector: false, forcedEvent: null, customers: expandDayObservations(DAY6_CUSTOMERS, 4) },
   { day: 7, quota: 130, hasDetector: false, forcedEvent: null, customers: expandDayObservations(DAY7_CUSTOMERS, 4) },
 ]
