@@ -807,12 +807,16 @@ export { REFERENCE, START_GOLD }
 // allowedChecks: 1つの商品につき、その日に調べられる回数。調査ポイント自体は
 // どの品も6〜8個あるので、日が進むほど「どこを見るか」の選択が重くなる。
 // 1日目は操作を覚える日なので実質無制限にしてある。
+// quota調整メモ(2026-10-04): 「後ろめたい客は必ず値切りに応じ、魂なしの
+// 品は必ず粘って高く売れる」というルールを正しく使い切った「賢い」プレイで
+// 実測した所持金推移は 56/23/(強盗で0)/8/10/43/+158。Day4・Day5が
+// 綱渡りだったため、両日だけ少し下げて緩和した(元は70/90)。
 export const DAYS = [
   { day: 1, quota: 60, hasDetector: true, forcedEvent: null, customers: expandDayObservations(DAY1_CUSTOMERS, 99) },
   { day: 2, quota: 75, hasDetector: true, forcedEvent: null, customers: expandDayObservations(DAY2_CUSTOMERS, 5) },
   { day: 3, quota: 80, hasDetector: true, forcedEvent: "robbery", customers: expandDayObservations(DAY3_CUSTOMERS, 5) },
-  { day: 4, quota: 70, hasDetector: false, forcedEvent: null, customers: expandDayObservations(DAY4_CUSTOMERS, 4) },
-  { day: 5, quota: 90, hasDetector: false, forcedEvent: null, customers: expandDayObservations(DAY5_CUSTOMERS, 4) },
+  { day: 4, quota: 62, hasDetector: false, forcedEvent: null, customers: expandDayObservations(DAY4_CUSTOMERS, 4) },
+  { day: 5, quota: 82, hasDetector: false, forcedEvent: null, customers: expandDayObservations(DAY5_CUSTOMERS, 4) },
   { day: 6, quota: 110, hasDetector: false, forcedEvent: null, customers: expandDayObservations(DAY6_CUSTOMERS, 4) },
   { day: 7, quota: 130, hasDetector: false, forcedEvent: null, customers: expandDayObservations(DAY7_CUSTOMERS, 4) },
 ]
