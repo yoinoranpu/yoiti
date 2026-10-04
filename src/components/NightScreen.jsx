@@ -7,7 +7,7 @@ function TopBar() {
   const quota = useGameStore((s) => s.quota)
   const customerIndex = useGameStore((s) => s.customerIndex)
   const inventoryCount = useGameStore((s) => s.inventory.length)
-  const total = useGameStore((s) => s.currentDayConfig().customers.length)
+  const total = useGameStore((s) => s.dayCustomers.length)
   const moonPhase = Math.min(day, 7)
 
   return (

@@ -3,6 +3,18 @@ import { DAYS, START_GOLD } from "../data/days"
 
 const currentDayConfig = (state) => DAYS[state.day - 1]
 
+// その夜の客の来店順に軽い運要素を持たせる(Fisher-Yates)。元の配列は
+// 書き換えずコピーを返す。Day1はチュートリアルなので呼び出し側で素通し
+// にする(固定順のまま)。
+const shuffled = (arr) => {
+  const copy = [...arr]
+  for (let i = copy.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1))
+    ;[copy[i], copy[j]] = [copy[j], copy[i]]
+  }
+  return copy
+}
+
 let inventoryUid = 0
 const itemToInventory = (item, revealedCount = 0, paidPrice = 0) => ({
   invId: `inv-${inventoryUid++}`,
@@ -96,6 +108,7 @@ export const useGameStore = create((set, get) => ({
   churchFavor: 0,
   marketFavor: 0,
   customerIndex: 0,
+  dayCustomers: [], // その夜の客の並び(Day2以降はshuffledで順番を入れ替えたコピー)
   notes: [],
   inspection: [],
   dialogueLog: [],
@@ -115,6 +128,7 @@ export const useGameStore = create((set, get) => ({
 
   startNight: () => {
     const day1 = DAYS[0]
+    // Day1はチュートリアルなので、操作を覚える間は客の順番を変えない。
     const customer = day1.customers[0]
     set({
       screen: "night",
@@ -124,6 +138,7 @@ export const useGameStore = create((set, get) => ({
       churchFavor: 0,
       marketFavor: 0,
       customerIndex: 0,
+      dayCustomers: day1.customers,
       notes: [],
       ...encounterStateFor(customer, soulRevealFor(customer, day1.hasDetector), nightRequestLine(customer)),
       soulChecked: false,
@@ -138,7 +153,7 @@ export const useGameStore = create((set, get) => ({
   },
 
   currentDayConfig: () => currentDayConfig(get()),
-  currentCustomer: () => currentDayConfig(get()).customers[get().customerIndex],
+  currentCustomer: () => get().dayCustomers[get().customerIndex],
   currentAppraisalItem: () => get().appraisalQueue[get().appraisalIndex],
   currentBuyer: () => get().currentAppraisalItem()?.buyer,
   // 査定机に今置いている在庫(ドラッグして置いた品)。何も置いていなければnull。
@@ -304,7 +319,7 @@ export const useGameStore = create((set, get) => ({
     const state = get()
     const config = currentDayConfig(state)
     const nextIndex = state.customerIndex + 1
-    if (nextIndex >= config.customers.length) {
+    if (nextIndex >= state.dayCustomers.length) {
       const queue = [...state.inventory]
       const firstItem = queue[0]
       set({
@@ -319,7 +334,7 @@ export const useGameStore = create((set, get) => ({
       })
       return
     }
-    const customer = config.customers[nextIndex]
+    const customer = state.dayCustomers[nextIndex]
     set({
       screen: "night",
       customerIndex: nextIndex,
@@ -426,14 +441,18 @@ export const useGameStore = create((set, get) => ({
   // 「次の日へ」共通処理(通常のクリア後・強盗イベント後の両方から呼ぶ)。
   // 在庫(inventory)はあえてリセットしない — 「やめておく」を選んだ品は
   // 翌日以降にも持ち越されて、また査定できる。
+  // 客の来店順には軽い運要素を持たせるため、Day2以降は毎回シャッフルした
+  // コピーを使う(元のDAYSデータ自体は書き換えない)。
   advanceDay: () => {
     const nextDay = get().day + 1
     const nextConfig = DAYS[nextDay - 1]
-    const firstCustomer = nextConfig.customers[0]
+    const nextDayCustomers = shuffled(nextConfig.customers)
+    const firstCustomer = nextDayCustomers[0]
     set({
       day: nextDay,
       quota: nextConfig.quota,
       customerIndex: 0,
+      dayCustomers: nextDayCustomers,
       screen: "night",
       ...encounterStateFor(firstCustomer, soulRevealFor(firstCustomer, nextConfig.hasDetector), nightRequestLine(firstCustomer)),
       soulChecked: false,
