@@ -15,6 +15,35 @@ const shuffled = (arr) => {
   return copy
 }
 
+// 再販リスク判定(運要素)。item.riskyResaleがある品(後ろめたい経緯で
+// 仕入れた品など)を売るとき、買い手がその場で何かに気づくかどうかを運で
+// 決める。気づかれた場合はその場で少し値切られて完結する(尾を引かない)。
+// 気づかれなかった場合は満額のまま、代わりに後から静かに評判が落ちる
+// (marketFavorのみ変動。所持金には影響しないため、運が悪くても上納金が
+// 払えなくなることはなく、エンディングの色が変わるだけに留める)。
+const RISKY_NOTICE_CUT = 0.8
+const applyRiskyResale = (item, buyer, baseGold) => {
+  if (!item.riskyResale) return { gold: baseGold, extraLine: null, favor: null }
+  if (Math.random() < 0.5) {
+    return {
+      gold: Math.round(baseGold * RISKY_NOTICE_CUT),
+      extraLine: {
+        speaker: buyer.name,
+        text: "品を検めていた手が、ふと止まった。「……まあ、この値なら目をつぶろう」",
+      },
+      favor: null,
+    }
+  }
+  return {
+    gold: baseGold,
+    extraLine: {
+      speaker: "narration",
+      text: "そのときは何も言われなかった。だが後日、この取引について妙な噂が立っていると耳にした。",
+    },
+    favor: { market: -5 },
+  }
+}
+
 let inventoryUid = 0
 const itemToInventory = (item, revealedCount = 0, paidPrice = 0) => ({
   invId: `inv-${inventoryUid++}`,
@@ -29,6 +58,7 @@ const itemToInventory = (item, revealedCount = 0, paidPrice = 0) => ({
   observedCount: revealedCount, // 購入時点までに鑑定机で開示できていた件数(棚のツールチップ表示用)
   paidPrice, // 実際に支払った額(棚で「いくらで買った品か」を確認できるように)
   category: item.category, // 査定時、買い手のwantsCategoryと照合して代用可否を判定する
+  riskyResale: item.riskyResale, // trueなら再販時に買い手が気づくかどうかの判定が入る(運要素)
   buyer: item.buyer,
 })
 
@@ -349,14 +379,18 @@ export const useGameStore = create((set, get) => ({
   sellAtValue: () => {
     const item = get().currentOfferedItem()
     if (!item || get().appraisalResolution) return
+    const buyer = get().currentBuyer()
+    const { gold: saleGold, extraLine, favor } = applyRiskyResale(item, buyer, item.trueValue)
     set((state) => ({
-      gold: state.gold + item.trueValue,
+      gold: state.gold + saleGold,
       inventory: state.inventory.filter((i) => i.invId !== item.invId),
       dialogueLog: [
         ...state.dialogueLog,
-        { speaker: "narration", text: `${item.name}は言い値の${item.trueValue}Gで引き取られた。` },
+        { speaker: "narration", text: `${item.name}は${saleGold}Gで引き取られた。` },
+        ...(extraLine ? [extraLine] : []),
       ],
-      appraisalResolution: { goldDelta: item.trueValue, kind: "acquired" },
+      appraisalResolution: { goldDelta: saleGold, kind: "acquired" },
+      ...applyFavor(state, favor),
     }))
   },
 
@@ -365,8 +399,8 @@ export const useGameStore = create((set, get) => ({
   tryHaggleUp: () => {
     const item = get().currentOfferedItem()
     if (!item || get().appraisalResolution) return
+    const buyer = get().currentBuyer()
     if (item.hasSoul) {
-      const buyer = get().currentBuyer()
       set((state) => ({
         dialogueLog: [
           ...state.dialogueLog,
@@ -376,14 +410,17 @@ export const useGameStore = create((set, get) => ({
       }))
       return
     }
+    const { gold: saleGold, extraLine, favor } = applyRiskyResale(item, buyer, item.haggleValue)
     set((state) => ({
-      gold: state.gold + item.haggleValue,
+      gold: state.gold + saleGold,
       inventory: state.inventory.filter((i) => i.invId !== item.invId),
       dialogueLog: [
         ...state.dialogueLog,
-        { speaker: "narration", text: `粘って${item.name}を${item.haggleValue}Gまで引き上げさせた。` },
+        { speaker: "narration", text: `粘って${item.name}を${saleGold}Gまで引き上げさせた。` },
+        ...(extraLine ? [extraLine] : []),
       ],
-      appraisalResolution: { goldDelta: item.haggleValue, kind: "acquired" },
+      appraisalResolution: { goldDelta: saleGold, kind: "acquired" },
+      ...applyFavor(state, favor),
     }))
   },
 

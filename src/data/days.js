@@ -142,6 +142,9 @@ const pushyPeddler = {
     image: "item-fabric",
     hasSoul: false,
     category: "fabric",
+    // riskyResale: 行商人が「中々出回らない品」とふっかけていた粗悪品。
+    // 再販時に買い手が気づくかどうかの運要素(偽物・いわく付き品の試作第1号)。
+    riskyResale: true,
     hiddenObservations: [
       { id: "d2-c2-i1", label: "織りの目", text: "よく見ると織りの目が粗い。量産品にありがちな仕上がりだ。" },
     ],
