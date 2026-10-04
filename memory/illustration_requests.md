@@ -171,9 +171,9 @@ short practical haircut.
 ```
 
 ### `owner.png` — 元締め(上納金の取り立て役)
-**(2026-10-04追加: 日送り時の上納金UIを、客と同じ「話しかけて向き合う」演出に
-変更したことに伴い新規発注。まだ未納品のため、現状は`CharacterFigure`の
-フォールバック(頭文字だけの丸プレースホルダー)で表示されている。)**
+**(2026-10-04: 納品・反映済み。`raw_illustrations/owner.jfif`から
+`remove_green_bg.py`でグリーンバックを除去し`public/assets/characters/
+owner.png`に配置。ブラウザで実機確認済み。)**
 ```
 Pixel art, no anti-aliasing, crisp pixel edges. Bust-up portrait,
 three-quarter view, on a flat solid chroma-key green background
